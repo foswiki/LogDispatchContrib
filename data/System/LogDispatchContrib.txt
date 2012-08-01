@@ -1,0 +1,26 @@
+<!--
+One line description, required for extensions repository catalog.
+   * Set SHORTDESCRIPTION = Advanced logging using Log::Dispatch
+-->
+---+!! LogDispatchContrib
+
+%SHORTDESCRIPTION%
+
+%TOC%
+
+---++ Installation
+%$INSTALL_INSTRUCTIONS%
+
+---++ Info
+
+|  Author: | SvenDowideit |
+|  Copyright &copy;: | 2012, Foswiki:Main.SvenDowideit http://fosiki.com |
+|  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]]) |
+|  Dependencies: | %$DEPENDENCIES% |
+|  Version: | %$VERSION% |
+|  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  1.0.0 (XX Mmm 20XX): | Initial version |
+|  Home: | http://foswiki.org/Extensions/%TOPIC% |
+|  Support: | http://foswiki.org/Support/%TOPIC% |
+
+
