@@ -32,9 +32,29 @@ sub new {
         use Log::Dispatch::File;
         $log->add(
             Log::Dispatch::File->new(
-                name      => 'file',
+                name      => 'file-events',
                 min_level => 'info',
-                filename  => 'Somefile.log',
+                max_level => 'info',
+                filename  => "$Foswiki::cfg{Log}{Dir}/events.log",
+                mode      => '>>',
+                newline   => 1
+            )
+        );
+        $log->add(
+            Log::Dispatch::File->new(
+                name      => 'file-errors',
+                min_level => 'notice',
+                filename  => "$Foswiki::cfg{Log}{Dir}/error.log",
+                mode      => '>>',
+                newline   => 1
+            )
+        );
+        $log->add(
+            Log::Dispatch::File->new(
+                name      => 'file-debug',
+                min_level => 'debug',
+                max_level => 'debug',
+                filename  => "$Foswiki::cfg{Log}{Dir}/debug.log",
                 mode      => '>>',
                 newline   => 1
             )
@@ -46,7 +66,7 @@ sub new {
         $log->add(
             Log::Dispatch::Screen->new(
                 name      => 'screen',
-                min_level => 'info',
+                min_level => 'error',
                 stderr    => 1,
                 newline   => 1
             )
@@ -79,6 +99,15 @@ See Foswiki::Logger for the interface.
 sub log {
     my ( $this, $level, @fields ) = @_;
 
+    my $now = _time();
+    my $time = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
+
+    # Unfortunate compatibility requirement; need the level, but the old
+    # logfile format doesn't allow us to add fields. Since we are changing
+    # the date format anyway, the least pain is to concatenate the level
+    # to the date; Foswiki::Time::ParseTime can handle it, and it looks
+    # OK too.
+    unshift( @fields, "$time $level" );
     my $message =
       '| ' . join( ' | ', map { s/\|/&vbar;/g; $_ } @fields ) . ' |';
 
@@ -96,8 +125,6 @@ sub log {
         require Encode;
         $message = Encode::encode( $Foswiki::cfg{Site}{CharSet}, $message, 0 );
     }
-
-    #TODO: make configure UI and don't log to everywhere at once.
 
     $this->{logger}->log( level => $level, message => $message );
 
