@@ -26,7 +26,46 @@ sub _time { return time() }
 
 sub new {
     my $class = shift;
-    return bless( {}, $class );
+    my $log   = Log::Dispatch->new();
+
+    if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
+        use Log::Dispatch::File;
+        $log->add(
+            Log::Dispatch::File->new(
+                name      => 'file',
+                min_level => 'info',
+                filename  => 'Somefile.log',
+                mode      => '>>',
+                newline   => 1
+            )
+        );
+    }
+
+    if ( $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} ) {
+        use Log::Dispatch::Screen;
+        $log->add(
+            Log::Dispatch::Screen->new(
+                name      => 'screen',
+                min_level => 'info',
+                stderr    => 1,
+                newline   => 1
+            )
+        );
+    }
+
+    if ( $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Enabled} ) {
+        use Log::Dispatch::Syslog;
+        $log->add(
+            Log::Dispatch::Syslog->new(
+                name      => 'syslog',
+                min_level => 'info',
+                stderr    => 1,
+                newline   => 1,
+                ident     => 'Foswiki'
+            )
+        );
+    }
+    return bless( { logger => $log }, $class );
 }
 
 =begin TML
@@ -57,51 +96,15 @@ sub log {
         require Encode;
         $message = Encode::encode( $Foswiki::cfg{Site}{CharSet}, $message, 0 );
     }
-    
+
     #TODO: make configure UI and don't log to everywhere at once.
 
-my $log = Log::Dispatch->new(
-    outputs => [
-        [
-            'File',
-            min_level => 'info',
-            filename  => 'Somefile.log',
-            mode      => '>>',
-            newline   => 1
-        ]
-    ],
-);
+    $this->{logger}->log( level => $level, message => $message );
 
-    use Log::Dispatch::Screen;
-    $log->add(
-        Log::Dispatch::Screen->new(
-            name      => 'screen',
-            min_level => 'info',
-            stderr    => 1,
-            newline   => 1
-        )
-    );
-    use Log::Dispatch::Syslog;
-    $log->add(
-        Log::Dispatch::Syslog->new(
-            name      => 'syslog',
-            min_level => 'info',
-            stderr    => 1,
-            newline   => 1,
-            ident     => 'Foswiki'
-        )
-    );
-
-
-     
-    $log->log( level => $level, message => $message );
-
-
-#    if ( $level =~ /^(error|critical|alert|emergency)$/ ) {
-#        print STDERR "$message\n";
-#    }
+    #    if ( $level =~ /^(error|critical|alert|emergency)$/ ) {
+    #        print STDERR "$message\n";
+    #    }
 }
-
 
 1;
 __END__
