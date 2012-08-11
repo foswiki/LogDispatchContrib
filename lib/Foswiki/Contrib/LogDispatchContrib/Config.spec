@@ -1,6 +1,15 @@
 #---+ Logging and Statistics
 
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# Enable the rolling file logger.  This method logs to a simple text file,
+# date-stamping each filename per the specified pattern.
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
+
+# **STRING 20** DISPLAY_IF {Log}{LogDispatch}{FileRolling}{Enabled}**
+# Pattern to use for the filenames.
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
+
+# **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the plain file logger.  This method logs to a simple text file 
 # without any locking or file rotation.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
