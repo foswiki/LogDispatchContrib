@@ -25,26 +25,7 @@ use Foswiki::Configure::Load ();
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
-# Map from a log level to the root of a log file name
-our %LEVEL2LOG = (
-    debug     => 'debug',     # 0
-    info      => 'events',    # 1
-    notice    => 'error',     # 2
-    warning   => 'error',     # 3
-    error     => 'error',     # 4
-    critical  => 'error',     # 5
-    alert     => 'error',     # 6
-    emergency => 'error'      # 7
-);
-
-# Define the minimum:maximum class for each filename
-our %LOG2LEVELS = (
-    debug  => 'debug:debug',
-    events => 'info:info',
-    error  => 'notice:emergency',
-);
-
-use constant TRACE => 0;
+use constant TRACE => 1;
 
 sub new {
     my $class   = shift;
@@ -56,18 +37,30 @@ sub new {
         $binmode .= ":encoding($Foswiki::cfg{Site}{CharSet})";
     }
 
+    my %FileRange;
+    if ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRange} ) {
+        %FileRange = %{ $Foswiki::cfg{Log}{LogDispatch}{FileRange} };
+    }
+    else {
+        %FileRange = (
+            debug  => 'debug:debug',
+            events => 'info:info',
+            error  => 'notice:emergency',
+        );
+    }
+
     if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} ) {
         eval 'use Log::Dispatch::File::Rolling';
         if ($@) {
-            print STDERR "Log::Dispatch::File::Rolling DISABLED\n$@";
+            print STDERR "ERROR: Log::Dispatch::File::Rolling DISABLED\n$@";
         }
         else {
             my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
               || '-%d{yyyy-MM}.log';
 
-            foreach my $file ( keys %LOG2LEVELS ) {
+            foreach my $file ( keys %FileRange ) {
                 my ( $min_level, $max_level ) =
-                  split( /:/, $LOG2LEVELS{$file} );
+                  split( /:/, $FileRange{$file} );
                 print STDERR
                   "File::Rolling: Adding $file as $min_level-$max_level\n"
                   if TRACE;
@@ -89,8 +82,8 @@ sub new {
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
         use Log::Dispatch::File;
 
-        foreach my $file ( keys %LOG2LEVELS ) {
-            my ( $min_level, $max_level ) = split( /:/, $LOG2LEVELS{$file} );
+        foreach my $file ( keys %FileRange ) {
+            my ( $min_level, $max_level ) = split( /:/, $FileRange{$file} );
             print STDERR "File: Adding $file as $min_level-$max_level\n"
               if TRACE;
             $log->add(
@@ -109,10 +102,15 @@ sub new {
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} ) {
         use Log::Dispatch::Screen;
+        my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel}
+          || 'error';
+        my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel}
+          || 'emergency';
         $log->add(
             Log::Dispatch::Screen->new(
                 name      => 'screen',
-                min_level => 'error',
+                min_level => $min_level,
+                max_level => $max_level,
                 stderr    => 1,
                 newline   => 1
             )
@@ -121,13 +119,24 @@ sub new {
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Enabled} ) {
         use Log::Dispatch::Syslog;
+        my $ident = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier}
+          || 'Foswiki';
+        my $facility = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility}
+          || 'user';
+        my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel}
+          || 'warn';
+        my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel}
+          || 'emergency';
+        my $logopt = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Logopt}
+          || 'ndelay,nofatal,pid';
         $log->add(
             Log::Dispatch::Syslog->new(
                 name      => 'syslog',
-                min_level => 'info',
-                stderr    => 1,
-                newline   => 1,
-                ident     => 'Foswiki'
+                min_level => $min_level,
+                max_level => $max_level,
+                facility  => $facility,
+                ident     => $ident,
+                logopt    => $logopt,
             )
         );
     }
@@ -295,8 +304,27 @@ sub eachEventSince {
 # Get the name of the log for a given reporting level
 sub _getLogForLevel {
     my $level = shift;
-    ASSERT( defined $LEVEL2LOG{$level} ) if DEBUG;
-    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $LEVEL2LOG{$level} . '.log';
+
+    # Map from a log level to the root of a log file name
+    my %FileMapping;
+    if ( defined $Foswiki::cfg{Log}{LogDispatch}{FileMapping} ) {
+        %FileMapping = %{ $Foswiki::cfg{Log}{LogDispatch}{FileMapping} };
+    }
+    else {
+        %FileMapping = (
+            debug     => 'debug',     # 0
+            info      => 'events',    # 1
+            notice    => 'error',     # 2
+            warning   => 'error',     # 3
+            error     => 'error',     # 4
+            critical  => 'error',     # 5
+            alert     => 'error',     # 6
+            emergency => 'error'      # 7
+        );
+    }
+
+    ASSERT( defined $FileMapping{$level} ) if DEBUG;
+    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $FileMapping{$level} . '.log';
 
     # SMELL: Expand should not be needed, except if bin/configure tries
     # to log to locations relative to $Foswiki::cfg{WorkingDir}, DataDir, etc.
