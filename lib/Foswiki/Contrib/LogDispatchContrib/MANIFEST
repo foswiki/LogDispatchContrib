@@ -3,3 +3,4 @@ data/System/LogDispatchContrib.txt 0644 Documentation page
 lib/Foswiki/Contrib/LogDispatchContrib.pm  Perl module 
 lib/Foswiki/Contrib/LogDispatchContrib/Config.spec 0444 Configuration
 lib/Foswiki/Logger/LogDispatch.pm 0444 the logger.
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRolling/Enabled.pm 0444

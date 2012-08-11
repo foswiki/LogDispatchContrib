@@ -57,27 +57,32 @@ sub new {
     }
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} ) {
-        use Log::Dispatch::File::Rolling;
+        eval 'use Log::Dispatch::File::Rolling';
+        if ($@) {
+            print STDERR "Log::Dispatch::File::Rolling DISABLED\n$@";
+        }
+        else {
+            my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
+              || '-%d{yyyy-MM}.log';
 
-        my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
-          || '-%d{yyyy-MM}.log';
-
-        foreach my $file ( keys %LOG2LEVELS ) {
-            my ( $min_level, $max_level ) = split( /:/, $LOG2LEVELS{$file} );
-            print STDERR
-              "File::Rolling: Adding $file as $min_level-$max_level\n"
-              if TRACE;
-            $log->add(
-                Log::Dispatch::File::Rolling->new(
-                    name      => 'rolling-' . $file,
-                    min_level => $min_level,
-                    max_level => $max_level,
-                    filename  => "$Foswiki::cfg{Log}{Dir}/$file$pattern",
-                    mode      => '>>',
-                    binmode   => $binmode,
-                    newline   => 1
-                )
-            );
+            foreach my $file ( keys %LOG2LEVELS ) {
+                my ( $min_level, $max_level ) =
+                  split( /:/, $LOG2LEVELS{$file} );
+                print STDERR
+                  "File::Rolling: Adding $file as $min_level-$max_level\n"
+                  if TRACE;
+                $log->add(
+                    Log::Dispatch::File::Rolling->new(
+                        name      => 'rolling-' . $file,
+                        min_level => $min_level,
+                        max_level => $max_level,
+                        filename  => "$Foswiki::cfg{Log}{Dir}/$file$pattern",
+                        mode      => '>>',
+                        binmode   => $binmode,
+                        newline   => 1
+                    )
+                );
+            }
         }
     }
 
