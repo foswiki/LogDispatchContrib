@@ -145,6 +145,25 @@ sub new {
 
 =begin TML
 
+---++ ObjectMethod finish()
+Break circular references.
+
+=cut
+
+# Note to developers; please undef *all* fields in the object explicitly,
+# whether they are references or not. That way this method is "golden
+# documentation" of the live fields in the object.
+sub finish {
+    my $this = shift;
+
+    #$this->{logger}->finish() if $this->{logger};
+    undef $this->{logger};
+    undef $this->{binmode};
+
+}
+
+=begin TML
+
 ---++ ObjectMethod log($level, @fields)
 
 See Foswiki::Logger for the interface.
