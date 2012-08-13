@@ -140,7 +140,7 @@ sub new {
             )
         );
     }
-    return bless( { logger => $log, binmode => $binmode }, $class );
+    return bless( { logger => $log, binmode => $binmode, fileMap => \%FileRange }, $class );
 }
 
 =begin TML
@@ -159,6 +159,7 @@ sub finish {
     #$this->{logger}->finish() if $this->{logger};
     undef $this->{logger};
     undef $this->{binmode};
+    undef $this->{filemap};
 
 }
 
@@ -192,6 +193,28 @@ sub log {
             require Encode;
             $message =
               Encode::encode( $Foswiki::cfg{Site}{CharSet}, $message, 0 );
+        }
+    }
+
+    # Optional obfsucation of IP addresses for some locations.  However
+    # preserve them for auth failures. 
+    if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ) {
+        if ( @_ > 4 ) {
+            unless ( $_[4] =~ /^AUTHENTICATION FAILURE/ ) {
+
+                if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
+                    $_[5] = 'x.x.x.x';
+                }
+                else {
+                    use Digest::MD5 qw( md5_hex );
+                    my $md5hex = md5_hex( $_[5] );
+                    $_[5] =
+                        hex( substr( $md5hex, 0, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 2, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 4, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 6, 2 ) );
+                }
+            }
         }
     }
 
@@ -258,17 +281,17 @@ See Foswiki::Logger for the interface.
 
 Copied from Foswiki::PlainFile logger.
 
-This logger implementation maps groups of levels to a single logfile, viz.
+This logger implementation maps groups of levels to a single logfile, viz.  By default:
    * =info= messages are output together.
    * =warning=, =error=, =critical=, =alert=, =emergency= messages are
      output together.
-This method cannot 
+The actual groupings are configurable.
 
 =cut
 
 sub eachEventSince {
     my ( $this, $time, $level ) = @_;
-    my $log = _getLogForLevel($level);
+    my $log = $this->_getLogForLevel($level);
 
     # Find the year-month for the current time
     my $now         = _time();
@@ -322,28 +345,33 @@ sub eachEventSince {
 
 # Get the name of the log for a given reporting level
 sub _getLogForLevel {
+    my $this  = shift;
     my $level = shift;
+    my $file;
 
-    # Map from a log level to the root of a log file name
-    my %FileMapping;
-    if ( defined $Foswiki::cfg{Log}{LogDispatch}{FileMapping} ) {
-        %FileMapping = %{ $Foswiki::cfg{Log}{LogDispatch}{FileMapping} };
-    }
-    else {
-        %FileMapping = (
-            debug     => 'debug',     # 0
-            info      => 'events',    # 1
-            notice    => 'error',     # 2
-            warning   => 'error',     # 3
-            error     => 'error',     # 4
-            critical  => 'error',     # 5
-            alert     => 'error',     # 6
-            emergency => 'error'      # 7
-        );
+    my %level2num = (
+        debug     =>  0,
+        info      =>  1,
+        notice    =>  2,
+        warning   =>  3,
+        error     =>  4,
+        critical  =>  5,
+        alert     =>  6,
+        emergency =>  7,
+    );
+    foreach my $testfile ( keys %{$this->{fileMap}} ) {
+        my ($min_level, $max_level) = split(/:/, $this->{fileMap}->{$testfile});
+        print STDERR " $testfile splits to min $min_level max $max_level\n" if TRACE;
+        if ( $level2num{$min_level} <= $level2num{$level} && $level2num{$max_level} >= $level2num{$level} ) {
+            $file = $testfile;
+            last;
+        }
     }
 
-    ASSERT( defined $FileMapping{$level} ) if DEBUG;
-    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $FileMapping{$level} . '.log';
+    print STDERR "Decoded level $level to file $file\n" if TRACE;
+
+    ASSERT( defined $file && $file ) if DEBUG;
+    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $file . '.log';
 
     # SMELL: Expand should not be needed, except if bin/configure tries
     # to log to locations relative to $Foswiki::cfg{WorkingDir}, DataDir, etc.

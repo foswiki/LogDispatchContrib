@@ -9,6 +9,27 @@
 # <ul><li>The <code>Screen</code> logger will write errors and other critical messages to the STDERR file,  which was also done by the default Foswiki loggers</li>
 # <li>The <code>Syslog</code> logger uses Sys::Syslog to write to the syslogd socket for local or remote logging.</li></ul>
 
+# **SELECT none,hash,x.x.x.x DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# Hide IP Addresses logged in the event log.  Default: IP addresses are logged.<ul>
+# <li><code>x.x.x.x</code> will log that in the field, meaning that multiple requests from the same IP address cannot be correlated.</li>
+# <li><code>hash</code> will encode the ip addresses, so they can be correlated, but not identified.</li></ul>
+# Note: the hash method does not work for IPv6 addresses.
+$Foswiki::cfg{Log}{LogDispatch}{MaskIP} = 'none';
+
+# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
+# Applicable to both the <code>File</code> and <code>FileRolling</code> loggers.
+# Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
+# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
+# The ranges may overlap or skip levels<br />
+# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code></br />
+# Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
+# Additional files can be added following the same format.  However, by default Foswik only logs to debug, info, warning and error levels.
+$Foswiki::cfg{Log}{LogDispatch}{FileRange} = {
+    debug  => 'debug:debug',
+    events => 'info:info',
+    error  => 'notice:emergency',
+};
+
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the rolling file logger.  This method logs to a simple text file,
 # date-stamping each filename per the specified pattern.
@@ -17,38 +38,15 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
 # **STRING 20** DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Pattern to use for the filenames.  File names are built from the log class (error, debug, events) and this suffix.
 # Date format is specified by <code>%d{..pattern..}%</code>.  Valid pattern characters include <ul><li>y - Year digit</li>
-# <li>M - Month digit or name if > 2 characters</li><li>d - day</li><li>w - week number</li></ul>The <code>$</code> will
-# insert the process ID, which can be helpful in extremely busy systems, or on systems that do not support file locking (flock).
+# <li><code>M</code> - Month digit or name if > 2 characters</li><li><code>d</code> - day</li><li><code>w</code> - week number</li><li><code>$</code> - Process ID</li></ul>The
+# process ID can be helpful to avoid log file contention in extremely busy systems, or on systems that do not support file locking (flock),
+# but is incompatible with the <code>eachEventSince</code> log processor..
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the plain file logger.  This method logs to a simple text file
 # without any locking or file rotation.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
-
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
-# Maps the 8 standard log levels (debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7) to a filename prefix
-# used by the File* based loggers.
-$Foswiki::cfg{Log}{LogDispatch}{FileMapping} = {
-    debug     => 'debug',
-    info      => 'events',
-    notice    => 'error',
-    warning   => 'error',
-    error     => 'error',
-    critical  => 'error',
-    alert     => 'error',
-    emergency => 'error',
- };
-
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
-# Specifies the range of events (0-7) that are logged to a file.
-# This hash is the reverse of the FileMapping hash.
-$Foswiki::cfg{Log}{LogDispatch}{FileRange} = {
-    debug  => 'debug:debug',
-    events => 'info:info',
-    error  => 'notice:emergency',
- };
-
 
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the "Screen" logger.  This method directs messages to the
