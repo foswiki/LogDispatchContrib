@@ -140,7 +140,9 @@ sub new {
             )
         );
     }
-    return bless( { logger => $log, binmode => $binmode, fileMap => \%FileRange }, $class );
+    return
+      bless( { logger => $log, binmode => $binmode, fileMap => \%FileRange },
+        $class );
 }
 
 =begin TML
@@ -197,7 +199,7 @@ sub log {
     }
 
     # Optional obfsucation of IP addresses for some locations.  However
-    # preserve them for auth failures. 
+    # preserve them for auth failures.
     if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ) {
         if ( @_ > 4 ) {
             unless ( $_[4] =~ /^AUTHENTICATION FAILURE/ ) {
@@ -350,19 +352,23 @@ sub _getLogForLevel {
     my $file;
 
     my %level2num = (
-        debug     =>  0,
-        info      =>  1,
-        notice    =>  2,
-        warning   =>  3,
-        error     =>  4,
-        critical  =>  5,
-        alert     =>  6,
-        emergency =>  7,
+        debug     => 0,
+        info      => 1,
+        notice    => 2,
+        warning   => 3,
+        error     => 4,
+        critical  => 5,
+        alert     => 6,
+        emergency => 7,
     );
-    foreach my $testfile ( keys %{$this->{fileMap}} ) {
-        my ($min_level, $max_level) = split(/:/, $this->{fileMap}->{$testfile});
-        print STDERR " $testfile splits to min $min_level max $max_level\n" if TRACE;
-        if ( $level2num{$min_level} <= $level2num{$level} && $level2num{$max_level} >= $level2num{$level} ) {
+    foreach my $testfile ( keys %{ $this->{fileMap} } ) {
+        my ( $min_level, $max_level ) =
+          split( /:/, $this->{fileMap}->{$testfile} );
+        print STDERR " $testfile splits to min $min_level max $max_level\n"
+          if TRACE;
+        if (   $level2num{$min_level} <= $level2num{$level}
+            && $level2num{$max_level} >= $level2num{$level} )
+        {
             $file = $testfile;
             last;
         }
