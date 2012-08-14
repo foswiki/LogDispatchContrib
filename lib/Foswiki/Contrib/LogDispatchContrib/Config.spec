@@ -38,7 +38,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
 # **STRING 20** DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Pattern to use for the filenames.  File names are built from the log class (error, debug, events) and this suffix.
 # Date format is specified by <code>%d{..pattern..}%</code>.  Valid pattern characters include <ul><li>y - Year digit</li>
-# <li><code>M</code> - Month digit or name if > 2 characters</li><li><code>d</code> - day</li><li><code>w</code> - week number</li><li><code>$</code> - Process ID</li></ul>The
+# <li><code>M</code> - Month digit or name if > 2 characters</li><li><code>d</code> - day</li><li><code>$</code> - Process ID</li></ul>The
 # process ID can be helpful to avoid log file contention in extremely busy systems, or on systems that do not support file locking (flock),
 # but is incompatible with the <code>eachEventSince</code> log processor..
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';

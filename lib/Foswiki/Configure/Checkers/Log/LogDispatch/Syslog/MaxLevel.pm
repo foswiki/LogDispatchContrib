@@ -1,5 +1,5 @@
 # See bottom of file for license and copyright information
-package Foswiki::Configure::Checkers::Log::LogDispatch::FileRolling::Enabled;
+package Foswiki::Configure::Checkers::Log::LogDispatch::Syslog::MaxLevel;
 
 use strict;
 use warnings;
@@ -9,35 +9,37 @@ our @ISA = ('Foswiki::Configure::Checker');
 
 use Foswiki::Configure::Dependency;
 
+my $prefix;
+my $postfix;
+my $formatted;
+
 sub check {
     my $this = shift;
     my $e    = '';
 
-    my $n = $this->checkPerlModule( 'Log::Dispatch::File::Rolling',
-        'Required to use FileRolling logging' );
-    if ( $n =~ m/Not installed/ ) {
-        $e .=
-          ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} )
-          ? $this->ERROR($n)
-          : $this->NOTE($n);
-    }
-    else {
-        $e .= $this->NOTE($n);
+    my %level2num = (
+        debug     => 0,
+        info      => 1,
+        notice    => 2,
+        warning   => 3,
+        error     => 4,
+        critical  => 5,
+        alert     => 6,
+        emergency => 7,
+    );
+
+    my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel};
+    my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel};
+
+    if ( defined $min_level && defined $max_level ) {
+        $e .= $this->ERROR(
+"Minimum level <code>$min_level ($level2num{$min_level})</code> is not less than or equal to Maximum level:  <code>$max_level ($level2num{$max_level})</code>"
+        ) unless ( $level2num{$min_level} <= $level2num{$max_level} );
     }
 
-    $n = $this->checkPerlModule( 'Log::Log4perl',
-        'Required to use FileRolling logging' );
-    if ( $n =~ m/Not installed/ ) {
-        $e .=
-          ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} )
-          ? $this->ERROR($n)
-          : $this->NOTE($n);
-    }
-    else {
-        $e .= $this->NOTE($n);
-    }
     return $e;
 }
+
 1;
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/

@@ -4,3 +4,8 @@ lib/Foswiki/Contrib/LogDispatchContrib.pm  Perl module
 lib/Foswiki/Contrib/LogDispatchContrib/Config.spec 0444 Configuration
 lib/Foswiki/Logger/LogDispatch.pm 0444 the logger.
 lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRolling/Enabled.pm 0444
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRolling/Pattern.pm 0444
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/Screen/MaxLevel.pm 0444
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRange.pm 0444
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/Syslog/MaxLevel.pm 0444
+

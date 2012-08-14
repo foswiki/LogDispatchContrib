@@ -1,5 +1,5 @@
 # See bottom of file for license and copyright information
-package Foswiki::Configure::Checkers::Log::LogDispatch::FileRolling::Enabled;
+package Foswiki::Configure::Checkers::Log::LogDispatch::FileRolling::Pattern;
 
 use strict;
 use warnings;
@@ -9,34 +9,48 @@ our @ISA = ('Foswiki::Configure::Checker');
 
 use Foswiki::Configure::Dependency;
 
+my $prefix;
+my $postfix;
+my $formatted;
+
 sub check {
     my $this = shift;
     my $e    = '';
 
-    my $n = $this->checkPerlModule( 'Log::Dispatch::File::Rolling',
+    my $n = $this->checkPerlModule( 'Log::Log4perl',
         'Required to use FileRolling logging' );
-    if ( $n =~ m/Not installed/ ) {
-        $e .=
-          ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} )
-          ? $this->ERROR($n)
-          : $this->NOTE($n);
-    }
-    else {
-        $e .= $this->NOTE($n);
+    unless ( $n =~ m/Not installed/ ) {
+        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
+            /\%d\{.*?\$.*?\}/ )
+        {
+            $e .= $this->WARN(
+"Filename pattern containg the PID cannot be processed by Statistics or other users of the eachEventSince() function"
+            );
+        }
+
+        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
+            /^(.*)\%d\{([^\}]*)\}(.*)$/ )
+        {
+            $prefix  = $1;
+            $postfix = $3;
+            require Log::Log4perl::DateFormat;
+            $formatted = Log::Log4perl::DateFormat->new($2);
+            my $filename = $prefix . _format() . $postfix;
+            $e .= $this->NOTE("Example filename: <code>events$filename</code>");
+            if ( $filename =~ m/not\s?(\(yet\))?\s?implemented/ ) {
+                $e .= $this->ERROR("Unsupported characters in pattern");
+            }
+        }
     }
 
-    $n = $this->checkPerlModule( 'Log::Log4perl',
-        'Required to use FileRolling logging' );
-    if ( $n =~ m/Not installed/ ) {
-        $e .=
-          ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} )
-          ? $this->ERROR($n)
-          : $this->NOTE($n);
-    }
-    else {
-        $e .= $this->NOTE($n);
-    }
     return $e;
+}
+
+sub _format {
+    my $result = $formatted->format( time(), 0 );
+    $result =~ s/(\$+)/sprintf('%0'.length($1).'.'.length($1).'u', $$)/eg;
+    return $result;
+
 }
 1;
 __END__
