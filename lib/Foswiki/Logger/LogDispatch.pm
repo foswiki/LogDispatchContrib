@@ -176,6 +176,12 @@ See Foswiki::Logger for the interface.
 sub log {
     my ( $this, $level, @fields ) = @_;
 
+    if (TRACE) {
+        foreach my $field (@_) {
+            print STDERR "field $field \n";
+        }
+    }
+
     my $now = _time();
     my $time = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
 
@@ -185,6 +191,38 @@ sub log {
     # to the date; Foswiki::Time::ParseTime can handle it, and it looks
     # OK too.
     unshift( @fields, "$time $level" );
+
+    # Optional obfsucation of IP addresses for some locations.  However
+    # preserve them for auth failures.
+    if ( defined $Foswiki::cfg{Log}{LogDispatch}{MaskIP}
+        && $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ne 'none' )
+    {
+        if ( scalar @fields > 4 ) {
+            unless ( $fields[4] =~ /^AUTHENTICATION FAILURE/ )
+
+             # SMELL This isn't correct.
+             #                && $fields[5] =~
+             #                /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/ )
+            {
+
+                if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
+                    $fields[5] = 'x.x.x.x';
+                }
+                else {
+
+                    # defaults to Hash of IP
+                    use Digest::MD5 qw( md5_hex );
+                    my $md5hex = md5_hex( $fields[5] );
+                    $fields[5] =
+                        hex( substr( $md5hex, 0, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 2, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 4, 2 ) ) . '.'
+                      . hex( substr( $md5hex, 6, 2 ) );
+                }
+            }
+        }
+    }
+
     my $message =
       '| ' . join( ' | ', map { s/\|/&vbar;/g; $_ } @fields ) . ' |';
 
@@ -195,28 +233,6 @@ sub log {
             require Encode;
             $message =
               Encode::encode( $Foswiki::cfg{Site}{CharSet}, $message, 0 );
-        }
-    }
-
-    # Optional obfsucation of IP addresses for some locations.  However
-    # preserve them for auth failures.
-    if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ) {
-        if ( @_ > 4 ) {
-            unless ( $_[4] =~ /^AUTHENTICATION FAILURE/ ) {
-
-                if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
-                    $_[5] = 'x.x.x.x';
-                }
-                else {
-                    use Digest::MD5 qw( md5_hex );
-                    my $md5hex = md5_hex( $_[5] );
-                    $_[5] =
-                        hex( substr( $md5hex, 0, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 2, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 4, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 6, 2 ) );
-                }
-            }
         }
     }
 
@@ -287,39 +303,95 @@ This logger implementation maps groups of levels to a single logfile, viz.  By d
    * =info= messages are output together.
    * =warning=, =error=, =critical=, =alert=, =emergency= messages are
      output together.
+   * =debug= messages are output together.
 The actual groupings are configurable.
 
 =cut
 
 sub eachEventSince {
     my ( $this, $time, $level ) = @_;
-    my $log = $this->_getLogForLevel($level);
 
-    # Find the year-month for the current time
-    my $now         = _time();
-    my $nowLogYear  = Foswiki::Time::formatTime( $now, '$year', 'servertime' );
-    my $nowLogMonth = Foswiki::Time::formatTime( $now, '$mo', 'servertime' );
+  # We will support a subset of the log filename patterns for the Rolling logger
+  # y - Year
+  # M - Month (2 digit only)
+  # d - Day in month
+  # D - Day in year
 
-    # Find the year-month for the first time in the range
-    my $logYear  = Foswiki::Time::formatTime( $time, '$year', 'servertime' );
-    my $logMonth = Foswiki::Time::formatTime( $time, '$mo',   'servertime' );
+    my $prefix           = '';
+    my $pattern          = '';
+    my $postfix          = '';
+    my $supportedPattern = 0;
 
-    # Get the names of all the logfiles in the time range
-    my @logs;
-    while ( !( $logMonth == $nowLogMonth && $logYear == $nowLogYear ) ) {
-        my $logfile = $log;
-        my $logTime = $logYear . sprintf( "%02d", $logMonth );
-        $logfile =~ s/\.log$/.$logTime/g;
-        push( @logs, $logfile );
-        $logMonth++;
-        if ( $logMonth == 13 ) {
-            $logMonth = 1;
-            $logYear++;
+    if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} ) {
+        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
+            /^(.*)\%d\{([^\}]*)\}(.*)$/ )
+        {
+            $prefix           = $1;
+            $pattern          = $2;
+            $postfix          = $3;
+            $supportedPattern = 1;
+
+            if ( !defined $pattern || $pattern =~ m/(?<!')[ehHmsSEFwWakKzZ]/ ) {
+                $pattern = '';
+                print STDERR
+"Pattern $pattern contains unsupported characters, eachEventSince is not supported\n"
+                  if TRACE;
+                $supportedPattern = 0;
+            }
+
         }
     }
 
-    # Finally the current log
-    push( @logs, $log );
+    print STDERR "Pattern $pattern supported = $supportedPattern\n" if TRACE;
+
+    my @logs;
+    my $log = $this->_getLogForLevel($level);
+
+    if (   $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled}
+        && $supportedPattern )
+    {
+
+        my $incr =
+            $pattern =~ /(?<!')[dD]{1,3}/ ? 'P1d'
+          : $pattern =~ /(?<!')MM/        ? 'P1m1d'
+          : $pattern =~ /(?<!')y{1,4}/    ? 'P1y'
+          :                                 '';
+
+        my $now     = _time();
+        my $logtime = $time;
+
+        while ( $logtime <= $now ) {
+            my $firstDate =
+              Foswiki::Time::formatTime( $logtime, 'iso', 'gmtime' );
+            my $interval = $firstDate . '/' . $incr;
+            my ( $epoch, $epincr ) = Foswiki::Time::parseInterval($interval);
+
+            require Log::Log4perl::DateFormat;
+            my $formatted = Log::Log4perl::DateFormat->new($pattern);
+            my $filesfx = _format( $formatted, $epoch );
+
+            my $logfile = $log;
+            $logfile =~ s/\.log$/$prefix$filesfx$postfix/;
+
+            if ( -f $logfile ) {
+                print STDERR "Pushed $logfile\n" if TRACE;
+                push( @logs, $logfile );
+            }
+
+            $logtime = $epincr;
+        }
+
+    }
+    elsif ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
+        push( @logs, $log );
+    }
+    else {
+        Foswiki::Func::writeWarning(
+"eachEventSince not supported for chosen log methods.  File or FileRolling should be enabled."
+        );
+        require Foswiki::ListIterator;
+        return new Foswiki::ListIterator( [] );
+    }
 
     my @iterators;
     foreach my $logfile (@logs) {
@@ -387,6 +459,14 @@ sub _getLogForLevel {
     return $log;
 }
 
+sub _format {
+    my $formatted = shift;
+    my $time      = shift;
+    my $result    = $formatted->format( $time, 0 );
+    $result =~ s/(\$+)/sprintf('%0'.length($1).'.'.length($1).'u', $$)/eg;
+    return $result;
+
+}
 1;
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/

@@ -55,11 +55,11 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
 # written to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} = $TRUE;
 
-# **SELECT debug,info,notice,warn,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
 # Choose the minimum log level logged to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel} = 'error';
 
-# **SELECT debug,info,notice,warn,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
 # Choose the maximum log level logged to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel} = 'emergency';
 
@@ -76,11 +76,11 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility} = 'user';
 # Choose an identifier to prepend to each log record
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier} = 'Foswiki';
 
-# **SELECT debug,info,notice,warn,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose the minimum log level logged to syslog.
-$Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel} = 'warn';
+$Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel} = 'warning';
 
-# **SELECT debug,info,notice,warn,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose the maximum log level logged to syslog.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel} = 'emergency';
 

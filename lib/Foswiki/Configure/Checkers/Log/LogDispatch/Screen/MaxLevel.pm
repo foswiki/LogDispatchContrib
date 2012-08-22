@@ -34,7 +34,7 @@ sub check {
     if ( defined $min_level && defined $max_level ) {
         $e .= $this->ERROR(
 "Minimum level <code>$min_level ($level2num{$min_level})</code> is not less than or equal to Maximum level:  <code>$max_level ($level2num{$max_level})</code>"
-        ) unless ( $level2num{$min_level} <= $level2num{$max_level} );
+        ) unless ( $level2num{$min_level} le $level2num{$max_level} );
     }
 
     return $e;
