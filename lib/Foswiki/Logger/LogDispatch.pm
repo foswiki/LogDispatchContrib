@@ -471,7 +471,11 @@ sub _format {
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2012 SvenDowideit@fosiki.com
+Author: SvenDowideit, GeorgeClark
+
+Copyright (C) 2012 SvenDowideit@fosiki.com,  Foswiki Contributors.
+Foswiki Contributors are listed in the AUTHORS file in the root of
+this distribution.  NOTE: Please extend that file, not this notice.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

@@ -9,7 +9,6 @@ required.
 
 =cut
 
-
 package Foswiki::Contrib::LogDispatchContrib;
 
 # Always use strict to enforce variable scoping
@@ -34,14 +33,14 @@ our $VERSION = '$Rev$';
 # topic - if you use %$RELEASE% with BuildContrib this is done automatically.
 our $RELEASE = '1.0.0';
 
-our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';;
+our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
 
 1;
 
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Author: SvenDowideit
+Author: SvenDowideit, GeorgeClark
 
 Copyright (C) 2008-2012 Foswiki Contributors. Foswiki Contributors
 are listed in the AUTHORS file in the root of this distribution.
