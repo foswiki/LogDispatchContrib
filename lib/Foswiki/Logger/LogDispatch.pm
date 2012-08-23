@@ -25,7 +25,7 @@ use Foswiki::Configure::Load ();
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
-use constant TRACE => 1;
+use constant TRACE => 0;
 
 sub new {
     my $class   = shift;
@@ -50,31 +50,42 @@ sub new {
     }
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} ) {
-        eval 'use Log::Dispatch::File::Rolling';
+        eval 'require Log::Log4perl::DateFormat';
         if ($@) {
-            print STDERR "ERROR: Log::Dispatch::File::Rolling DISABLED\n$@";
+            print STDERR
+"ERROR: Log::Log4Perl missing - Log::Dispatch::File::Rolling DISABLED\n$@";
+            $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = 0;
         }
         else {
-            my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
-              || '-%d{yyyy-MM}.log';
-
-            foreach my $file ( keys %FileRange ) {
-                my ( $min_level, $max_level ) =
-                  split( /:/, $FileRange{$file} );
+            eval 'use Log::Dispatch::File::Rolling';
+            if ($@) {
                 print STDERR
-                  "File::Rolling: Adding $file as $min_level-$max_level\n"
-                  if TRACE;
-                $log->add(
-                    Log::Dispatch::File::Rolling->new(
-                        name      => 'rolling-' . $file,
-                        min_level => $min_level,
-                        max_level => $max_level,
-                        filename  => "$Foswiki::cfg{Log}{Dir}/$file$pattern",
-                        mode      => '>>',
-                        binmode   => $binmode,
-                        newline   => 1
-                    )
-                );
+                  "ERROR: Log::Dispatch::File::Rolling missing - DISABLED\n$@";
+                $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = 0;
+            }
+            else {
+                my $pattern =
+                  $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
+                  || '-%d{yyyy-MM}.log';
+
+                foreach my $file ( keys %FileRange ) {
+                    my ( $min_level, $max_level ) =
+                      split( /:/, $FileRange{$file} );
+                    print STDERR
+                      "File::Rolling: Adding $file as $min_level-$max_level\n"
+                      if TRACE;
+                    $log->add(
+                        Log::Dispatch::File::Rolling->new(
+                            name      => 'rolling-' . $file,
+                            min_level => $min_level,
+                            max_level => $max_level,
+                            filename => "$Foswiki::cfg{Log}{Dir}/$file$pattern",
+                            mode     => '>>',
+                            binmode  => $binmode,
+                            newline  => 1
+                        )
+                    );
+                }
             }
         }
     }
@@ -313,7 +324,7 @@ sub eachEventSince {
 
   # We will support a subset of the log filename patterns for the Rolling logger
   # y - Year
-  # M - Month (2 digit only)
+  # M - Month
   # d - Day in month
   # D - Day in year
 
@@ -357,8 +368,9 @@ sub eachEventSince {
           : $pattern =~ /(?<!')y{1,4}/    ? 'P1y'
           :                                 '';
 
-        my $now     = _time();
-        my $logtime = $time;
+        my $now       = _time();
+        my $logtime   = $time;
+        my $formatted = Log::Log4perl::DateFormat->new($pattern);
 
         while ( $logtime <= $now ) {
             my $firstDate =
@@ -367,7 +379,6 @@ sub eachEventSince {
             my ( $epoch, $epincr ) = Foswiki::Time::parseInterval($interval);
 
             require Log::Log4perl::DateFormat;
-            my $formatted = Log::Log4perl::DateFormat->new($pattern);
             my $filesfx = _format( $formatted, $epoch );
 
             my $logfile = $log;

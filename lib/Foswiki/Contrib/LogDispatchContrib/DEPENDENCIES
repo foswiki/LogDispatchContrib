@@ -1,0 +1,5 @@
+Log::Dispatch,>=0,cpan,May be required for lib/Foswiki/Logger/LogDispatch.pm
+Log::Dispatch::File::Rolling,>=0,cpan,May be required for lib/Foswiki/Logger/LogDispatch.pm
+Log::Dispatch::Screen,>=0,cpan,May be required for lib/Foswiki/Logger/LogDispatch.pm
+Sys::Syslog,>=0.16,cpan,Optional May be required for Syslog logging  
+Log::Log4perl::DateFormat,>=0,cpan,Optional May be required for lib/Foswiki/Logger/LogDispatch.pm

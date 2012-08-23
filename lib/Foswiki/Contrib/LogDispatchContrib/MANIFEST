@@ -8,4 +8,5 @@ lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRolling/Pattern.pm 0444
 lib/Foswiki/Configure/Checkers/Log/LogDispatch/Screen/MaxLevel.pm 0444
 lib/Foswiki/Configure/Checkers/Log/LogDispatch/FileRange.pm 0444
 lib/Foswiki/Configure/Checkers/Log/LogDispatch/Syslog/MaxLevel.pm 0444
+lib/Foswiki/Configure/Checkers/Log/LogDispatch/Syslog/Enabled.pm 0444
 
