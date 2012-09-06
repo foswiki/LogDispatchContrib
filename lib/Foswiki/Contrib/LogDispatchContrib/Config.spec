@@ -17,23 +17,41 @@
 $Foswiki::cfg{Log}{LogDispatch}{MaskIP} = 'none';
 
 # **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
-# Applicable to both the <code>File</code> and <code>FileRolling</code> loggers.
-# Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
-# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
-# The ranges may overlap or skip levels<br />
-# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code></br />
-# Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
-# Additional files can be added following the same format.  However, by default Foswik only logs to debug, info, warning and error levels.
-$Foswiki::cfg{Log}{LogDispatch}{FileRange} = {
-    debug  => 'debug:debug',
-    events => 'info:info',
-    error  => 'notice:emergency',
+# Defines which logger should be iterated over using <code>Func::eachEventSince()</code>.  If multiple loggers are active for the same logging level,
+# the first listed logger will be used.  If no loger is active for a level, an empty iterator is returned.
+# A logging level should only be included once in the list.  In the case of the <code>File</code> and
+# <code>FileRolling</code> loggers, the filename is determined by mapping the level to the file prefix using the <code>{Log}{LogDispatch}{FileRange}</code> setting.
+# By default, foswiki iterates only the "info" logging level, for statistics processing.
+#
+# The <code>Screen</code> and <code>Syslog</code>  loggers do not support event iteration.
+$Foswiki::cfg{Log}{LogDispatch}{EventIterator} = {
+    'debug' => 'FileRolling,File',
+    'info' => 'FileRolling,File',
+    'notice' => 'FileRolling,File',
+    'warning' => 'FileRolling,File',
+    'error' => 'FileRolling,File',
+    'critical' => 'FileRolling,File',
+    'alert' => 'FileRolling,File',
+    'emergency' => 'FileRolling,File',
 };
 
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the rolling file logger.  This method logs to a simple text file,
 # date-stamping each filename per the specified pattern.
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
+
+# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
+# Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
+# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
+# The ranges may overlap or skip levels<br />
+# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code></br />
+# Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
+# Additional files can be added following the same format.  However, by default Foswik only logs to debug, info, warning and error levels.
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
+    debug  => 'debug:debug',
+    events => 'info:info',
+    error  => 'notice:emergency',
+};
 
 # **STRING 20** DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Pattern to use for the filenames.  File names are built from the log class (error, debug, events) and this suffix.
@@ -47,6 +65,19 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 # Enable the plain file logger.  This method logs to a simple text file
 # without any locking or file rotation.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
+
+# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{File}{Enabled}**
+# Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
+# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
+# The ranges may overlap or skip levels<br />
+# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code></br />
+# Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
+# Additional files can be added following the same format.  However, by default Foswik only logs to debug, info, warning and error levels.
+$Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
+    debug  => 'debug:debug',
+    events => 'info:info',
+    error  => 'notice:emergency',
+};
 
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the "Screen" logger.  This method directs messages to the

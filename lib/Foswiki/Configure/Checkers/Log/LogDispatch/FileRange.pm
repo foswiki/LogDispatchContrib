@@ -17,6 +17,8 @@ sub check {
     my $this = shift;
     my $e    = '';
 
+    return unless defined $Foswiki::cfg{Log}{LogDispatch}{FileRange};
+
     my %FileRange = %{ $Foswiki::cfg{Log}{LogDispatch}{FileRange} };
 
     my %level2num = (

@@ -1,5 +1,5 @@
 # See bottom of file for license and copyright information
-package Foswiki::Configure::Checkers::Log::LogDispatch::FileRolling::Pattern;
+package Foswiki::Configure::Checkers::Log::LogDispatch::File::FileLevels;
 
 use strict;
 use warnings;
@@ -17,45 +17,41 @@ sub check {
     my $this = shift;
     my $e    = '';
 
-    my $n = $this->checkPerlModule( 'Log::Log4perl',
-        'Required to use FileRolling logging' );
-    unless ( $n =~ m/Not installed/ ) {
+    return unless defined $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels};
 
-        return $e
-          unless defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern};
+    my %FileLevels = %{ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} };
 
-        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
-            /\%d\{.*?\$.*?\}/ )
+    my %level2num = (
+        debug     => 0,
+        info      => 1,
+        notice    => 2,
+        warning   => 3,
+        error     => 4,
+        critical  => 5,
+        alert     => 6,
+        emergency => 7,
+    );
+
+    foreach my $file ( keys %FileLevels ) {
+        my ( $min_level, $max_level ) =
+          split( /:/, $FileLevels{$file} );
+        $e .= $this->ERROR(
+"Invalid Minimum level <code>$min_level</code> for <code>$file</code>"
+        ) unless ( defined $level2num{$min_level} );
+        $e .= $this->ERROR(
+"Invalid Maximum level <code>$max_level</code> for <code>$file</code>"
+        ) unless ( defined $level2num{$max_level} );
+        if ( defined $level2num{$min_level} && defined $level2num{$max_level} )
         {
-            $e .= $this->WARN(
-"Filename pattern containg the PID cannot be processed by Statistics or other users of the eachEventSince() function"
-            );
-        }
-
-        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
-            /^(.*)\%d\{([^\}]*)\}(.*)$/ )
-        {
-            $prefix  = $1;
-            $postfix = $3;
-            require Log::Log4perl::DateFormat;
-            $formatted = Log::Log4perl::DateFormat->new($2);
-            my $filename = $prefix . _format() . $postfix;
-            $e .= $this->NOTE("Example filename: <code>events$filename</code>");
-            if ( $filename =~ m/not\s?(\(yet\))?\s?implemented/ ) {
-                $e .= $this->ERROR("Unsupported characters in pattern");
-            }
+            $e .= $this->ERROR(
+"For file <code>$file</code>, <code>$min_level ($level2num{$min_level})</code> is not less than or equal to:  <code>$max_level ($level2num{$max_level})</code>"
+            ) unless ( $level2num{$min_level} <= $level2num{$max_level} );
         }
     }
 
     return $e;
 }
 
-sub _format {
-    my $result = $formatted->format( time(), 0 );
-    $result =~ s/(\$+)/sprintf('%0'.length($1).'.'.length($1).'u', $$)/eg;
-    return $result;
-
-}
 1;
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/
