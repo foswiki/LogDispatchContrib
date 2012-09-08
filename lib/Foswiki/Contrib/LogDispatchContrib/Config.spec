@@ -68,11 +68,14 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
 
 # **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{File}{Enabled}**
 # Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
-# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
-# The ranges may overlap or skip levels<br />
-# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code></br />
+# <code>filename-prefix => 'minimum:maximum',</code> (be sure to include the trailing comma!)<br />
+# The ranges may overlap or skip levels, but must be in order of lower:higher.<br />
+# <code>(debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7)</code><br />
 # Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
-# Additional files can be added following the same format.  However, by default Foswik only logs to debug, info, warning and error levels.
+# Additional files can be added following the same format.  By default, Foswik only logs to debug, info, warning and error levels.<br /><br/>
+# An optional 3rd parameter may be specified <code>minimum:maximum:filter</code>.  If a simple matching string or regular expression is provided, the log messages to the named file will be 
+# further filtered by the pattern match and only logged when the pattern matches.   For example to send all authentication failures to a unique log file
+# Add a line:   <code>authfail => 'info:info:AUTHENTICATION FAILURE',</code>   Note: Filtered files will not be considered for <codeLeachEventSince</code> processing.
 $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     debug  => 'debug:debug',
     events => 'info:info',

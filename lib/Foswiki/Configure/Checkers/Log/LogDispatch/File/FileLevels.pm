@@ -33,8 +33,8 @@ sub check {
     );
 
     foreach my $file ( keys %FileLevels ) {
-        my ( $min_level, $max_level ) =
-          split( /:/, $FileLevels{$file} );
+        my ( $min_level, $max_level, $pattern ) =
+          split( /:/, $FileLevels{$file}, 3 );
         $e .= $this->ERROR(
 "Invalid Minimum level <code>$min_level</code> for <code>$file</code>"
         ) unless ( defined $level2num{$min_level} );
@@ -46,6 +46,11 @@ sub check {
             $e .= $this->ERROR(
 "For file <code>$file</code>, <code>$min_level ($level2num{$min_level})</code> is not less than or equal to:  <code>$max_level ($level2num{$max_level})</code>"
             ) unless ( $level2num{$min_level} <= $level2num{$max_level} );
+        }
+        if ($pattern) {
+            $e .= $this->NOTE(
+"<b>Note:</b> Filtered file <code>$file</code> will not be considered for <code>eachEventSince</code> processing."
+            );
         }
     }
 

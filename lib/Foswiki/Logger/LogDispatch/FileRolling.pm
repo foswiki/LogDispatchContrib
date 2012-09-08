@@ -154,17 +154,21 @@ sub eachEventSince() {
           : $pattern =~ /(?<!')y{1,4}/    ? 'P1y'
           :                                 '';
 
-        my $now       = _time();
-        my $logtime   = $time;
+        my $endincr;
+        my $enddate = Foswiki::Time::formatTime( _time(), 'iso', 'gmtime' );
+        ( $enddate, $endincr ) =
+          Foswiki::Time::parseInterval( $enddate . '/' . $incr );
+
+        my $logtime = $time;
+        require Log::Log4perl::DateFormat;
         my $formatted = Log::Log4perl::DateFormat->new($pattern);
 
-        while ( $logtime <= $now ) {
+        while ( $logtime <= $endincr ) {
             my $firstDate =
               Foswiki::Time::formatTime( $logtime, 'iso', 'gmtime' );
             my $interval = $firstDate . '/' . $incr;
             my ( $epoch, $epincr ) = Foswiki::Time::parseInterval($interval);
 
-            require Log::Log4perl::DateFormat;
             my $filesfx = _format( $formatted, $epoch );
 
             my $logfile = $log;
@@ -177,7 +181,6 @@ sub eachEventSince() {
 
             $logtime = $epincr;
         }
-
     }
 
     my @iterators;

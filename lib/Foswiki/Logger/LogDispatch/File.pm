@@ -42,9 +42,15 @@ sub new {
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
         use Log::Dispatch::File;
+        my $canFilter;
 
         foreach my $file ( keys %FileRange ) {
-            my ( $min_level, $max_level ) = split( /:/, $FileRange{$file} );
+            my ( $min_level, $max_level, $filter ) =
+              split( /:/, $FileRange{$file}, 3 );
+            if ($filter) {
+                $canFilter = 1;
+                next;
+            }
             print STDERR "File: Adding $file as $min_level-$max_level\n"
               if TRACE;
             $logd->{dispatch}->add(
@@ -60,6 +66,7 @@ sub new {
                 )
             );
         }
+        undef *Foswiki::Logger::LogDispatch::File::log unless ($canFilter);
     }
 
     return bless( { fileMap => \%FileRange }, $class );
@@ -81,6 +88,61 @@ sub finish {
     undef $this->{fileMap};
 
 }
+
+=begin TML
+
+---++ ObjectMethod log()
+This method is only called if a filter has been specified in the File map.  Log::Dispatch
+does not provide a way to filter messages, so this routine determines if the filter matches
+the log record, adds the log method just for this record, calls the log_to function directly
+and then removes the method.
+
+=cut
+
+sub log {
+    my $this  = shift;
+    my $fhash = shift;
+
+    my $message = Foswiki::Logger::LogDispatch::_flattenLog(%$fhash);
+    ($message) = $message =~ m/(.*)/;    #untaint
+
+    foreach my $file ( keys %{ $this->{fileMap} } ) {
+        my ( $min_level, $max_level, $filter ) =
+          split( /:/, $this->{fileMap}->{$file}, 3 );
+        if ( $filter && $message =~ qr/$filter/ ) {
+            print STDERR
+              "File: Adding $file as $min_level-$max_level filter $filter\n"
+              if TRACE;
+            $fhash->{logd}->{dispatch}->add(
+                Log::Dispatch::File->new(
+                    name              => 'file-' . $file,
+                    min_level         => $min_level,
+                    max_level         => $max_level,
+                    filename          => "$Foswiki::cfg{Log}{Dir}/$file.log",
+                    mode              => '>>',
+                    binmode           => $fhash->{logd}->binmode(),
+                    newline           => 1,
+                    close_after_write => 1,
+                )
+            );
+
+            $fhash->{logd}->{dispatch}->log_to(
+                name    => "file-$file",
+                level   => $fhash->{level},
+                message => "$message"
+            );
+            $fhash->{logd}->{dispatch}->remove("file-$file");
+        }
+    }
+
+}
+
+=begin TML
+
+---++ ObjectMethod eachEventSince()
+Determine the file needed to provide the requested event level, and return an iterator for the file.
+
+=cut
 
 sub eachEventSince() {
     my ( $this, $time, $level ) = @_;
@@ -114,6 +176,16 @@ sub eachEventSince() {
 
 }
 
+=begin TML
+
+---++ ObjectMethod getLogForLevel()
+Called with a requested level, it processes reverses the file map to return the log name
+prefix that should contain the requested messages.
+
+Filtered files are not included. 
+
+=cut
+
 # Get the name of the log for a given reporting level
 sub getLogForLevel {
     my $logger = shift;
@@ -131,10 +203,8 @@ sub getLogForLevel {
         emergency => 7,
     );
     foreach my $testfile ( keys %{ $logger->{fileMap} } ) {
-        my ( $min_level, $max_level ) =
+        my ( $min_level, $max_level, $filter ) =
           split( /:/, $logger->{fileMap}->{$testfile} );
-        print STDERR " $testfile splits to min $min_level max $max_level\n"
-          if TRACE;
         if (   $level2num{$min_level} <= $level2num{$level}
             && $level2num{$max_level} >= $level2num{$level} )
         {

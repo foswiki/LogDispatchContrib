@@ -108,6 +108,7 @@ See Foswiki::Logger for the interface.
 sub log {
     my ( $this, $level, @fields ) = @_;
     my %fhash;
+    $fhash{logd}  = $this;
     $fhash{level} = $level;
     $fhash{message} =
       '';    # Required field that will be overwritten by a callback.
@@ -129,16 +130,23 @@ sub log {
         $fn++;
     }
 
+    # Dispatch all of the registred output classes
     $this->{dispatch}->log(%fhash);
 
+    # And any discrete logging per handler
+    foreach my $method ( keys %{ $this->{methods} } ) {
+        my $handler = $this->{methods}->{$method};
+        if ( $handler->can('log') ) {
+            $handler->log( \%fhash );
+        }
+
+    }
 }
 
 sub _flattenLog {
 
     my %p = @_;
     my @fields;
-
-    print STDERR "_flattenLog called - LEVEL $p{level}\n";
 
     for ( my $i = 0 ; $i < scalar keys %p ; $i++ ) {
         push( @fields, $p{$i} ) if defined $p{$i};
@@ -233,9 +241,10 @@ sub eachEventSince {
     my $handler;
     my $eventHandler;
 
-    foreach $eventHandler (@eventHandlers) {
-        if ( $Foswiki::cfg{Log}{LogDispatch}{$eventHandler}{Enabled} ) {
-            $handler = $this->{methods}->{$eventHandler};
+    foreach my $eH (@eventHandlers) {
+        if ( $Foswiki::cfg{Log}{LogDispatch}{$eH}{Enabled} ) {
+            $handler      = $this->{methods}->{$eH};
+            $eventHandler = $eH;
             last;
         }
     }
