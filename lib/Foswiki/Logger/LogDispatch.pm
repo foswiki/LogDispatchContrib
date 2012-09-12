@@ -236,8 +236,10 @@ sub eachEventSince {
 
     $this->init() unless $this->{dispatch};
 
-    my @eventHandlers =
-      split( ',', $Foswiki::cfg{Log}{LogDispatch}{EventIterator}{$level} );
+    my $cfgHandlers = $Foswiki::cfg{Log}{LogDispatch}{EventIterator}{$level}
+      || 'FileRolling,File';
+
+    my @eventHandlers = split( ',', $cfgHandlers );
     my $handler;
     my $eventHandler;
 

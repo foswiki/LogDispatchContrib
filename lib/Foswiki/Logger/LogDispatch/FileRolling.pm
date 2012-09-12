@@ -119,6 +119,9 @@ sub eachEventSince() {
 
     my $supportedPattern = 1;
 
+    my $cfgPattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
+      || '-%d{yyyy-MM}.log';
+
   # We will support a subset of the log filename patterns for the Rolling logger
   # y - Year
   # M - Month
@@ -126,9 +129,7 @@ sub eachEventSince() {
   # D - Day in year
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} ) {
-        if ( $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} =~
-            /^(.*)\%d\{([^\}]*)\}(.*)$/ )
-        {
+        if ( $cfgPattern =~ /^(.*)\%d\{([^\}]*)\}(.*)$/ ) {
             $prefix  = $1;
             $pattern = $2;
             $postfix = $3;
