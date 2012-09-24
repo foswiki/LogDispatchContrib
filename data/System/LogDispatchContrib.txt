@@ -8,13 +8,151 @@ One line description, required for extensions repository catalog.
 
 %TOC%
 
+---++ Introduction
+
+LogDispatchContrib is a pluggable logger implementation that can replace the
+default loggers shipped with Foswiki.  It provides logging methods similar to
+the Compatibility logger shipped with Foswiki, and adds several alternative
+methods to support alternate destinations.
+
+The following log methods are shipped by default:
+
+   $ ==LogDispatch::File==: A simple file based logger.  It does not do any file rotation or date stamping of the files.
+   $ ==LogDispatch::FileRolling==: A file based logger similar to the "Compatibility" logger used by default on Foswiki 1.0.  It logs to files named with a date stamp, for example events-2012-09.log.   The pattern for the file name is configurable. This logger supports several advanced features:
+      * Files are "thread safe": locked so that multiple process can safely log to a common file
+      * Files are "fork safe": The file is closed and reopened if a fork is detected
+   $ ==LogDispatch::Screen==: Logs to STDERR, which is typically written to the Apache (Web Server) error log..
+   $ ==LogDispatch::Syslog==: Logs to the local Syslog daemon.  By default logs to the =user= facility.
+
+The architecure of LogDispatch is pluggable.  It is expected that additional
+loggers will be added, such as =Log::Dispatch::DBI=, =Log::Dispatch::Jabber=,
+etc.
+
+Note that all loggers can be enabled to log all levels to all methods. When a
+log message is requested by a Foswiki function, Log::Dispatch examines the log
+level of the request, and passes the message to each enabled logger in
+sequence that has requested that log level.
+
+---++ Foswiki Logging
+
+=Log::Dispatch= supports the 8 logging levels typical in most logging systems.
+=debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7=,  however Foswiki uses only a subset of these levels:
+   * =debug= level 0 is used for some error reporting, and when debugging is enabled in the core and for some extensions.
+   * =info= level 1 is used for transation logging.  The following fields are written:
+| *Timestamp* and *log level* | *User ID* | *Action* | *Web.Topic* | *Agent String* | *IP Address* |
+| 2012-09-23T03:15:54Z info | guest | view | System.LogDispatchContrib | Firefox | 127.0.0.1 |
+   * =warning=  Errors and other failures are written to the warning log level
+
+---++ Logger features and configuration
+
+---+++ Common configuration for all loggers
+
+---+++ =LogDispatch::File= simple file logging
+
+When enabled, the default configuration:
+   * debug messages (Level 0) are writen to =debug.log=
+   * info messages (Level 1) are written to =events.log=
+   * notice-emergency (Levels 2-7) are written to =error.log=
+
+This can be overridden with an "Expert" level configuration variable, which
+assigns a range of log levels to a filename prefix.  The left side of the ==>=
+is the filename prefix, and the right side is the =lower:higher= log level to
+be written to that file.
+
+There is an extra filter option that can be used to direct a subset of log
+messages to a file.  The log request is assembled into the complete message,
+and then the optional 3rd parameter is applied as a regular expression against
+that message.  If the regex matches, the record will be logged.
+
+This example implements the default log levels as shown above, and then
+applies two filtered loggers:
+   * Authentication messages (matching string =AUTHENTICATION=) are sent to =auth.log=
+   * registration start, requests and rejections are logged to =reg.log=
+
+<verbatim>
+$Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
+    debug  => 'debug:debug',
+    events => 'info:info',
+    error  => 'notice:emergency',
+    auth   => 'info:info:AUTHENTICATION',
+    reg    => 'info:warning:\\| [Rr]eg(start|ister|istration)',
+    };
+</verbatim>
+
+---+++ =LogDispatch::FileRolling= "Stamped" file logger
+
+<div class="foswikiHelp">%X% This logger has additional dependencies:
+   * =Log::Dispatch::File::Rolling= must be installed using CPAN
+   * =Log::Log4perl::DateFormat= required for the filename patern parsing
+</div>
+
+*This is the recommended logger for file logging, especially on busy systems*
+
+When enabled, the default configuration:
+   * debug messages (Level 0) are writen to =debug-yyyy-mm.log=
+   * info messages (Level 1) are written to =events-yyyy-mm.log=
+   * notice-emergency (Levels 2-7) are written to =error-yyyy-mm.log=
+
+The !FileRolling logger is very similar to the simple File logger, however it
+generates filenames using a pattern substitution for Year, Month, and a subset
+of other options supported by !Log4Perl.  The pattern substitution is applied
+_only_ to the characters inside the =%d{...}= block.  The default pattern:
+
+<verbatim>
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
+</verbatim>
+is appended to the filename prefix, and the substitution is
+applied.  For example:  =error-2012-09.log= or =events-2012-12.log=
+
+The following character patterns are supported, however many will not make
+sense as part of a filename.
+
+| *Character* | *Definition* | *Type* | *eachEvent* | *Example* |
+|    G     | era designator      | (Text)         | | AD |
+|    e     | epoch seconds       | (Number)       |%X%| 1315011604 |
+|    y     | year                | (Number)       | | 1996 |
+|    M     | month in year       | (Number)       | | 07 |
+|    M     | month in year       | (Text)         |%X%| July (Text if pattern longer than 2 characters) |
+|    d     | day in month        | (Number)       | | 10 |
+|    h     | hour in am/pm (1~12)| (Number)       |%X%| 12 |
+|    H     | hour in day (0~23)  | (Number)       |%X%| 0 |
+|    m     | minute in hour      | (Number)       |%X%| 30 |
+|    s     | second in minute    | (Number)       |%X%| 55 |
+|    S     | millisecond         | (Number)       |%X%| 978 |
+|    E     | day in week         | (Text)         |%X%| Tuesday |
+|    D     | day in year         | (Number)       | | 189 |
+|    a     | am/pm marker        | (Text)         |%X%| PM |
+|    Z     | RFC 822 time zone   | (Text)         |%X%| -0800 |
+|    $     | process id          | (Number)       |%X%| 8232 |
+
+   * %X% - not supported for =eachEventSince= log processing.   
+   * ==$== Process ID can be used to isolate logs per process to avoid any contention on extremely busy system, or when the system cannot support file locking.
+
+As with the File logger, the log levels 0-7 are mapped to file name prefixes using an expert level parameter.  However unlike the File logger, __log filtering is not supported__
+
+<verbatim>
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
+    debug  => 'debug:debug',
+    events => 'info:info',
+    error  => 'notice:emergency',
+    };
+</verbatim>
+
 ---++ Installation
 %$INSTALL_INSTRUCTIONS%
 
+---++ Possible future enhancements
+
+   * Ensure consistent format for all logs - include the User, Web.Topic and IP address 
+   * Add DBI logger
+   * IPv6 support
+   * Add Jabber, DBI,  Windows even type loggers
+   * Add filtering support for the !FileRolling logger similar to the File * logger.
+ 
 ---++ Info
 
-|  Author: | SvenDowideit |
-|  Copyright &copy;: | 2012, Foswiki:Main.SvenDowideit http://fosiki.com |
+|  Author: | George Clark |
+|  Copyright &copy;: | 2012, Foswiki:Main.GeorgeClark |
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]]) |
 |  Dependencies: | %$DEPENDENCIES% |
 |  Version: | %$VERSION% |
