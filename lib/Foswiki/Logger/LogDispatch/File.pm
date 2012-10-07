@@ -41,6 +41,22 @@ sub new {
         );
     }
 
+    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} ) {
+        $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} = {
+            info => [
+                ' | ', [ ' ', 'timestamp', 'level' ],
+                'user', 'action',
+                'webTopic', [ ' ', 'extra', 'agent', ],
+                'remoteAddr'
+            ],
+            DEFAULT => [
+                ' | ',
+                [ ' ', 'timestamp', 'level' ],
+                [ ' ', 'caller',    'extra' ]
+            ],
+        };
+    }
+
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
         use Log::Dispatch::File;
         my $hasFilter = 0;
@@ -63,7 +79,7 @@ sub new {
                     mode      => '>>',
                     binmode   => $logd->binmode(),
                     newline   => 1,
-                    callbacks => \&Foswiki::Logger::LogDispatch::_flattenLog,
+                    callbacks => \&_flattenLog,
                 )
             );
         }
@@ -73,6 +89,36 @@ sub new {
     }
 
     return bless( { fileMap => \%FileRange }, $class );
+}
+
+=begin TML
+
+---++ Private method _flattenLog()
+Provides a default layout if configure neglected to include one for the File logger,
+and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+
+=cut
+
+sub _flattenLog {
+
+    my $level = '';
+
+# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
+    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
+        if ( $_[$e] eq 'level' ) {
+            $level = $_[ $e + 1 ];
+            last;
+        }
+    }
+
+    my $logLayout_ref =
+      ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{$level} )
+      ? $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{$level}
+      : $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{DEFAULT};
+
+    push @_, Layout_ref => $logLayout_ref;
+
+    goto &Foswiki::Logger::LogDispatch::_flattenLog;
 }
 
 =begin TML
@@ -109,7 +155,7 @@ sub log {
     my $this  = shift;
     my $fhash = shift;
 
-    my $message = Foswiki::Logger::LogDispatch::_flattenLog(%$fhash);
+    my $message = _flattenLog(%$fhash);
     ($message) = $message =~ m/(.*)/;    #untaint
 
     foreach my $file ( keys %{ $this->{fileMap} } ) {
@@ -188,7 +234,7 @@ sub eachEventSince() {
 Called with a requested level, it processes reverses the file map to return the log name
 prefix that should contain the requested messages.
 
-Filtered files are not included. 
+Filtered files are not included.
 
 =cut
 

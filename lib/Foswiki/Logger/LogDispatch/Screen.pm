@@ -8,7 +8,7 @@ use Assert;
 
 =begin TML
 
----+ package Foswiki::Logger::LogDispatch::File
+---+ package Foswiki::Logger::LogDispatch::Screen
 
 use Log::Dispatch to allow logging to almost anything.
 
@@ -26,6 +26,22 @@ sub new {
     my $log     = $logd->{dispatch};
     my $binmode = $logd->{binmode};
 
+    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} ) {
+        $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} = {
+            info => [
+                ' | ', [ ' ', 'timestamp', 'level' ],
+                'user', 'action',
+                'webTopic', [ ' ', 'extra', 'agent', ],
+                'remoteAddr'
+            ],
+            DEFAULT => [
+                ' | ',
+                [ ' ', 'timestamp', 'level' ],
+                [ ' ', 'caller',    'extra' ]
+            ],
+        };
+    }
+
     if ( $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} ) {
         use Log::Dispatch::Screen;
         my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel}
@@ -39,12 +55,42 @@ sub new {
                 max_level => $max_level,
                 stderr    => 1,
                 newline   => 1,
-                callbacks => \&Foswiki::Logger::LogDispatch::_flattenLog,
+                callbacks => \&_flattenLog,
             )
         );
     }
 
     return bless( {}, $class );
+}
+
+=begin TML
+
+---++ Private method _flattenLog()
+Provides a default layout if configure neglected to include one for the File logger,
+and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+
+=cut
+
+sub _flattenLog {
+
+    my $level = '';
+
+# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
+    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
+        if ( $_[$e] eq 'level' ) {
+            $level = $_[ $e + 1 ];
+            last;
+        }
+    }
+
+    my $logLayout_ref =
+      ( defined $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{$level} )
+      ? $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{$level}
+      : $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{DEFAULT};
+
+    push @_, Layout_ref => $logLayout_ref;
+
+    goto &Foswiki::Logger::LogDispatch::_flattenLog;
 }
 
 1;

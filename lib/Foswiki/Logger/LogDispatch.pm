@@ -79,7 +79,6 @@ sub init {
         # These are not logging methods
         next if $logtype eq 'MaskIP';
         next if $logtype eq 'EventIterator';
-        next if $logtype eq 'FlatLayout';
         next unless ( $Foswiki::cfg{Log}{LogDispatch}{$logtype}{Enabled} );
 
         my $logMethod = 'Foswiki::Logger::LogDispatch::' . $logtype;
@@ -240,18 +239,14 @@ sub _flattenLog {
 #use Data::Dumper qw( Dumper );
 #use Carp qw<longmess>;
 #my $mess = longmess();
-#print STDERR "Starting to process $logHash{level}\n";
 #print STDERR "===== CALLER =====\n" . Dumper ( $mess ) . "========\n";
+#print STDERR "===== INCOMING PARAMS ===\n" . Dumper( @_ ) . "========\n";
 #print STDERR "===== INCOMING HASH ===\n" . Dumper( %logHash ) . "========\n";
 #print STDERR "===== CONFIG HASH ===\n" . Dumper( $Foswiki::cfg{Log}{LogDispatch}{FlatLayout} ) . "========\n";
 
-    my $logLayout_ref =
-      ( defined $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{ $logHash{level} } )
-      ? $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{"$logHash{level}"}
-      : $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{DEFAULT};
+    my $logLayout_ref = $logHash{Layout_ref};
 
     my @line;    # Collect the results
-
     foreach ( @$logLayout_ref[ 1 .. $#{$logLayout_ref} ] ) {
         if ( ref($_) eq 'ARRAY' ) {
             push @line,

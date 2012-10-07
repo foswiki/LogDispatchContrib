@@ -44,6 +44,22 @@ sub new {
         );
     }
 
+    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} ) {
+        $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} = {
+            info => [
+                ' | ', [ ' ', 'timestamp', 'level' ],
+                'user', 'action',
+                'webTopic', [ ' ', 'extra', 'agent', ],
+                'remoteAddr'
+            ],
+            DEFAULT => [
+                ' | ',
+                [ ' ', 'timestamp', 'level' ],
+                [ ' ', 'caller',    'extra' ]
+            ],
+        };
+    }
+
     eval 'require Log::Log4perl::DateFormat';
     if ($@) {
         print STDERR
@@ -78,8 +94,7 @@ sub new {
                         mode      => '>>',
                         binmode   => $logd->binmode(),
                         newline   => 1,
-                        callbacks =>
-                          \&Foswiki::Logger::LogDispatch::_flattenLog,
+                        callbacks => \&_flattenLog,
                     )
                 );
             }
@@ -87,6 +102,36 @@ sub new {
     }
 
     return bless( { fileMap => \%FileRange }, $class );
+}
+
+=begin TML
+
+---++ Private method _flattenLog()
+Provides a default layout if configure neglected to include one for the File logger,
+and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+
+=cut
+
+sub _flattenLog {
+
+    my $level = '';
+
+# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
+    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
+        if ( $_[$e] eq 'level' ) {
+            $level = $_[ $e + 1 ];
+            last;
+        }
+    }
+
+    my $logLayout_ref =
+      ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{$level} )
+      ? $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{$level}
+      : $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{DEFAULT};
+
+    push @_, Layout_ref => $logLayout_ref;
+
+    goto &Foswiki::Logger::LogDispatch::_flattenLog;
 }
 
 =begin TML
