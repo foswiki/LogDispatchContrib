@@ -17,6 +17,7 @@ use Log::Dispatch to allow logging to almost anything.
 use Log::Dispatch                               ();
 use Foswiki::ListIterator                       ();
 use Foswiki::Configure::Load                    ();
+use Foswiki::Logger::LogDispatch::FileUtil      ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
 
 # Local symbol used so we can override it during unit testing
@@ -207,13 +208,13 @@ sub getLogForLevel {
         alert     => 6,
         emergency => 7,
     );
-    foreach my $testfile ( keys %{ $logger->{fileMap} } ) {
+    foreach ( keys %{ $logger->{fileMap} } ) {
         my ( $min_level, $max_level, $filter ) =
-          split( /:/, $logger->{fileMap}->{$testfile} );
+          split( /:/, $logger->{fileMap}->{$_} );
         if (   $level2num{$min_level} <= $level2num{$level}
             && $level2num{$max_level} >= $level2num{$level} )
         {
-            $file = $testfile;
+            $file = $_;
             last;
         }
     }

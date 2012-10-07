@@ -35,6 +35,17 @@ $Foswiki::cfg{Log}{LogDispatch}{EventIterator} = {
     'emergency' => 'FileRolling,File',
 };
 
+# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
+# Array of fields to be joined together to build the log record.  The default value will generate log records compatible with the default Foswiki loggers
+# Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
+# if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
+# Arrays can be nested no more than one level deep.   Valid fields are:
+# timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
+$Foswiki::cfg{Log}{LogDispatch}{FlatLayout} =  {
+        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', ], 'remoteAddr'],
+        DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
+        };
+
 # **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
 # Enable the rolling file logger.  This method logs to a simple text file,
 # date-stamping each filename per the specified pattern.

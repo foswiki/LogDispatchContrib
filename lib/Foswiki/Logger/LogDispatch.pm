@@ -79,6 +79,8 @@ sub init {
         # These are not logging methods
         next if $logtype eq 'MaskIP';
         next if $logtype eq 'EventIterator';
+        next if $logtype eq 'FlatLayout';
+        next unless ( $Foswiki::cfg{Log}{LogDispatch}{$logtype}{Enabled} );
 
         my $logMethod = 'Foswiki::Logger::LogDispatch::' . $logtype;
         eval "require $logMethod";
@@ -235,27 +237,41 @@ sub _flattenLog {
 
     my %logHash = @_;
 
-# Example info log message
-# | 2012-09-26T13:29:58Z info | admin | save | Sandbox/Blah.WebPreferences | Firefox | 127.0.0.1 |
+#use Data::Dumper qw( Dumper );
+#use Carp qw<longmess>;
+#my $mess = longmess();
+#print STDERR "Starting to process $logHash{level}\n";
+#print STDERR "===== CALLER =====\n" . Dumper ( $mess ) . "========\n";
+#print STDERR "===== INCOMING HASH ===\n" . Dumper( %logHash ) . "========\n";
+#print STDERR "===== CONFIG HASH ===\n" . Dumper( $Foswiki::cfg{Log}{LogDispatch}{FlatLayout} ) . "========\n";
 
-    my $message =
-      ( $logHash{level} eq 'info' )
-      ? '| $timestamp $level | $user | $action | $webTopic | $extra $agent | $remoteAddr |'
-      : '| $timestamp $level | $caller $extra |';
+    my $logLayout_ref =
+      ( defined $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{ $logHash{level} } )
+      ? $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{"$logHash{level}"}
+      : $Foswiki::cfg{Log}{LogDispatch}{FlatLayout}{DEFAULT};
 
-    foreach my $field ( sort keys %logHash ) {
-        next unless defined $logHash{$field};
-        next if ( $field eq 'logd' );    # This is the LogDispatch object
-        next if ( $field eq 'name' );    # This is the LogDispatch logger name
+    my @line;    # Collect the results
 
-        $logHash{$field} =~ s/\|/&vbar;/g;
-        $logHash{$field} =~ s/\n/&#0A;/sg;
-        print STDERR "Process $field value $logHash{$field}\n" if TRACE;
-        $message =~ s/\$$field/$logHash{$field}/g;
+    foreach ( @$logLayout_ref[ 1 .. $#{$logLayout_ref} ] ) {
+        if ( ref($_) eq 'ARRAY' ) {
+            push @line,
+              join(
+                @{$_}[0],
+                map( ( $logHash{$_} || '' ), @{$_}[ 1 .. $#{$_} ] )
+              );
+        }
+        else {
+            push @line, ( $logHash{$_} || '' );
+        }
     }
 
-    # Remove any remaining tokens
-    $message =~ s/\$[a-zA-Z]{4,10}//g;
+    # Extract non-blank characters from delimiter for encoding
+    my ($delim) = @$logLayout_ref[0] =~ m/(\S*)/;
+    my $message = @$logLayout_ref[0]
+      . join(
+        @$logLayout_ref[0],
+        map { s/([$delim\n])/'&#'.ord($1).';'/gex; $_ } @line
+      ) . @$logLayout_ref[0];
 
     print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
 
@@ -306,10 +322,10 @@ sub eachEventSince {
     my $handler;
     my $eventHandler;
 
-    foreach my $eH (@eventHandlers) {
-        if ( $Foswiki::cfg{Log}{LogDispatch}{$eH}{Enabled} ) {
-            $handler      = $this->{methods}->{$eH};
-            $eventHandler = $eH;
+    foreach (@eventHandlers) {
+        if ( $Foswiki::cfg{Log}{LogDispatch}{$_}{Enabled} ) {
+            $handler      = $this->{methods}->{$_};
+            $eventHandler = $_;
             last;
         }
     }

@@ -38,7 +38,7 @@ sequence that has requested that log level.
 =Log::Dispatch= supports the 8 logging levels typical in most logging systems.
 =debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7=,  however Foswiki uses only a subset of these levels:
    * =debug= level 0 is used for some error reporting, and when debugging is enabled in the core and for some extensions.
-   * =info= level 1 is used for transation logging.  The following fields are written:
+   * =info= level 1 is used for transation logging.  The following fields are written by default:
 | *Timestamp* and *log level* | *User ID* | *Action* | *Web.Topic* | *Agent String* | *IP Address* |
 | 2012-09-23T03:15:54Z info | guest | view | System.LogDispatchContrib | Firefox | 127.0.0.1 |
    * =warning=  Errors and other failures are written to the warning log level
@@ -46,6 +46,12 @@ sequence that has requested that log level.
 ---++ Logger features and configuration
 
 ---+++ Common configuration for all loggers
+
+The followng common features apply to all Loggers:
+
+   $ ==$Foswiki::cfg{Log}{LogDispatch}{MaskIP}==: Hide IP Addresses logged in the event log.  Default: IP addresses are logged.  Two possible options can be configured: ==x.x.x.x== will cause the =remoteAddr= field to be replaced with =x.x.x.x=.  ==hash== will cause the IP address to be scrambled, so that the original address is not easily identifiable, but multiple transactions from the same IP address will be logged using the same address.  Note: the hash method does not work for IPv6 addresses.
+   $ ==$Foswiki::cfg{Log}{LogDispatch}{EventIterator}==: Specified which logger should be used to retrieve messages when the =eachEventSince= function is used.   This is an _expert_ level setting. See the help in =bin/configure= for more information.
+   $ ==$Foswiki::cfg{Log}{LogDispatch}{FlatLayout}==: Defines the record layout used to write the log to a flat file.  This is an _expert_ level setting. See the help in =bin/configure= for more information.  Currently a common format can be set the four supported loggers.
 
 ---+++ =LogDispatch::File= simple file logging
 
@@ -125,7 +131,7 @@ sense as part of a filename.
 |    Z     | RFC 822 time zone   | (Text)         |%X%| -0800 |
 |    $     | process id          | (Number)       |%X%| 8232 |
 
-   * %X% - not supported for =eachEventSince= log processing.   
+   * %X% - not supported for =eachEventSince= log processing.
    * ==$== Process ID can be used to isolate logs per process to avoid any contention on extremely busy system, or when the system cannot support file locking.
 
 As with the File logger, the log levels 0-7 are mapped to file name prefixes using an expert level parameter.  However unlike the File logger, __log filtering is not supported__
@@ -138,17 +144,35 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
     };
 </verbatim>
 
+---+++ Screen (STDERR) logger
+
+This method directs messages to the STDERR output.  STDERR is normally recorded in the Apache error log. When enabled, the default configuration sends  error, critical, emergency and alert messages to STDERR.
+There are two configuration options, specifying the lowest and highest log level to be sent to STDERR.
+
+---+++ Syslog logger
+<div class="foswikiHelp">%X% This logger has additional dependencies:
+   * =Sys::Syslog= is required for Syslog logging
+</div>
+
+The Syslog logger uses the system Syslog facility to send messages to the
+system log. It is disabled by default.  It has 5 configuration options:
+   * =Facility= - specifies the Syslog Facility set in the log message. Default is =user=.
+   * =Identifier= - specifies a string that is prepended to each log message. Default is =Foswiki=.
+   * =MinLevel= and
+   * =MaxLevel= specifies the range of log levels sent to the Syslog logger.
+   * =Logopt= Logger options understood by Syslog.  This is an expert level configuration. See http://perldoc.perl.org/Sys/Syslog.html and =bin/configure= help for details.
+
 ---++ Installation
 %$INSTALL_INSTRUCTIONS%
 
 ---++ Possible future enhancements
 
-   * Ensure consistent format for all logs - include the User, Web.Topic and IP address 
+   * Ensure consistent format for all logs - include the User, Web.Topic and IP address
    * Add DBI logger
    * IPv6 support
    * Add Jabber, DBI,  Windows even type loggers
    * Add filtering support for the !FileRolling logger similar to the File * logger.
- 
+
 ---++ Info
 
 |  Author: | George Clark |
