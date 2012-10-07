@@ -4,6 +4,7 @@ package Foswiki::Logger::LogDispatch;
 use strict;
 use warnings;
 use utf8;
+
 use Assert;
 
 use Foswiki::Logger ();
@@ -24,7 +25,7 @@ use Foswiki::ListIterator ();
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
-use constant TRACE => 1;
+use constant TRACE => 0;
 
 sub new {
     my $class   = shift;
@@ -38,9 +39,15 @@ sub new {
         $binmode .= ":encoding($Foswiki::cfg{Site}{CharSet})";
     }
 
-    return
-      bless( { dispatch => $log, binmode => $binmode, methods => \%methods },
-        $class );
+    return bless(
+        {
+            dispatch    => $log,
+            binmode     => $binmode,
+            methods     => \%methods,
+            acceptsHash => 1,
+        },
+        $class
+    );
 }
 
 =begin TML
@@ -103,98 +110,154 @@ sub binmode {
 
 See Foswiki::Logger for the interface.
 
+---+++ Compatibility interface:
+ $this->logger->log( 'info', $user, $action, $webTopic, $message, $remoteAddr );
+ $this->logger->log( 'warning', $mess );
+ $this->logger->log( 'debug', $mess );
+
+---+++ Native interface:
+ $this->logger->log( { level      => 'info',
+                       user       => $user,
+                       action     => $action,
+                       webTopic   => $webTopic,
+                       extra      => $string or \@fields,
+                       remoteAddr => $remoteAddr } );
+
+ $this->logger->log( { level => 'warning',
+                       caller => $caller,
+                       extra  => $string or \@fields } );
+
+ $this->logger->log( { level => 'debug',
+                       extra  => $string or \@fields } );
+
+Fields recorded for info messages are generally fixed.  Any levels other than info
+can be called with an array of additional fields to log.
+
 =cut
 
 sub log {
-    my ( $this, $level, @fields ) = @_;
-    my %fhash;
-    $fhash{logd}  = $this;
-    $fhash{level} = $level;
-    $fhash{message} =
+    my $this = shift;
+    my $fhash;
+
+    # Native interface:  Just pass through the hash
+    if ( ref( $_[0] ) eq 'HASH' ) {
+        $fhash = shift;
+    }
+
+    # Compatibility interface. Fixed fields are mapped into the hash
+    # and remaining fields are passed for later processing.
+    else {
+        $fhash->{level} = shift;
+
+        if ( $fhash->{level} eq 'info' ) {
+            $fhash->{user}       = shift;
+            $fhash->{action}     = shift;
+            $fhash->{webTopic}   = shift;
+            $fhash->{extra}      = shift;
+            $fhash->{remoteAddr} = shift;
+        }
+        else {
+            $fhash->{extra} = \@_;
+        }
+    }
+
+    # Implement the core event filter
+    return
+      if ( $fhash->{level} eq 'info'
+        && defined $fhash->{action}
+        && defined $Foswiki::cfg{Log}{Action}{ $fhash->{action} }
+        && !$Foswiki::cfg{Log}{Action}{ $fhash->{action} } );
+
+    #$this->SUPER::setCommonFields($fhash)
+    #  if ( $Foswiki::Plugins::VERSION > 2.2 );
+
+    $fhash->{extra} = join( ' ', @{ $fhash->{extra} } )
+      if ( ref( $fhash->{extra} ) eq 'ARRAY' );
+
+    $fhash->{logd} = $this;    # Logger object needed for some loggers.
+    $fhash->{message} ||=
       '';    # Required field that will be overwritten by a callback.
-    my $fn = 0;
+
+    my $now = _time();
+    $fhash->{timestamp} = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
 
     $this->init() unless $this->{dispatch};
 
-    # Event type info is logged with following format:
-    # 'info', $user, $action, $webTopic, $extra, $remoteAddr
-    # Other logs are undefined, passing an array of "stuff"
+    # Optional obfsucation of IP addresses for some locations.  However
+    # preserve them for auth failures.
+    if (   defined $Foswiki::cfg{Log}{LogDispatch}{MaskIP}
+        && $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ne 'none'
+        && defined $fhash->{remoteAddr} )
+    {
+        unless ( $fhash->{extra} =~ /^AUTHENTICATION FAILURE/ ) {
 
-# The LogDispatch log call requires a hash,  so convert the field array into a hash
-# File, FileRolling, Screen and Syslog will all use _flattenLog callback to convert
-# back to a flat log message.   The DBI logger will access the individual fields.
+            if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
+                $fhash->{remoteAddr} = 'x.x.x.x';
+            }
+            else {
 
-    foreach my $fld (@fields) {
-        print STDERR "field $fn = $fld \n" if TRACE;
-        $fhash{$fn} = $fld;
-        $fn++;
+                # defaults to Hash of IP
+                use Digest::MD5 qw( md5_hex );
+                my $md5hex = md5_hex( $fhash->{remoteAddr} );
+                $fhash->{remoteAddr} =
+                    hex( substr( $md5hex, 0, 2 ) ) . '.'
+                  . hex( substr( $md5hex, 2, 2 ) ) . '.'
+                  . hex( substr( $md5hex, 4, 2 ) ) . '.'
+                  . hex( substr( $md5hex, 6, 2 ) );
+            }
+        }
     }
 
     # Dispatch all of the registred output classes
-    $this->{dispatch}->log(%fhash);
+    $this->{dispatch}->log(%$fhash);
 
     # And any discrete logging per handler
     foreach my $method ( keys %{ $this->{methods} } ) {
         my $handler = $this->{methods}->{$method};
         if ( $handler->can('log') ) {
-            $handler->log( \%fhash );
+            print STDERR " LogDispatch.pm thinks $method should LOG \n"
+              if TRACE;
+            $handler->log($fhash);
         }
-
     }
 }
 
+=begin TML
+
+---++ ObjectMethod _flattenLog( %logHash )
+
+This is a callback used by the flat file loggers to flatten the logged
+fields into a single record per a format token.
+
+=cut
+
 sub _flattenLog {
 
-    my %p = @_;
-    my @fields;
+    my %logHash = @_;
 
-    for ( my $i = 0 ; $i < scalar keys %p ; $i++ ) {
-        push( @fields, $p{$i} ) if defined $p{$i};
-    }
-
-    my $now = _time();
-    my $time = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
-
-    # Unfortunate compatibility requirement; need the level, but the old
-    # logfile format doesn't allow us to add fields. Since we are changing
-    # the date format anyway, the least pain is to concatenate the level
-    # to the date; Foswiki::Time::ParseTime can handle it, and it looks
-    # OK too.
-    unshift( @fields, "$time $p{level}" );
-
-    # Optional obfsucation of IP addresses for some locations.  However
-    # preserve them for auth failures.
-    if ( defined $Foswiki::cfg{Log}{LogDispatch}{MaskIP}
-        && $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ne 'none' )
-    {
-        if ( scalar @fields > 4 ) {
-            unless ( $fields[4] =~ /^AUTHENTICATION FAILURE/ )
-
-             # SMELL This isn't correct.
-             #                && $fields[5] =~
-             #                /[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/ )
-            {
-
-                if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
-                    $fields[5] = 'x.x.x.x';
-                }
-                else {
-
-                    # defaults to Hash of IP
-                    use Digest::MD5 qw( md5_hex );
-                    my $md5hex = md5_hex( $fields[5] );
-                    $fields[5] =
-                        hex( substr( $md5hex, 0, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 2, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 4, 2 ) ) . '.'
-                      . hex( substr( $md5hex, 6, 2 ) );
-                }
-            }
-        }
-    }
+# Example info log message
+# | 2012-09-26T13:29:58Z info | admin | save | Sandbox/Blah.WebPreferences | Firefox | 127.0.0.1 |
 
     my $message =
-      '| ' . join( ' | ', map { s/\|/&vbar;/g; $_ } @fields ) . ' |';
+      ( $logHash{level} eq 'info' )
+      ? '| $timestamp $level | $user | $action | $webTopic | $extra $agent | $remoteAddr |'
+      : '| $timestamp $level | $caller $extra |';
+
+    foreach my $field ( sort keys %logHash ) {
+        next unless defined $logHash{$field};
+        next if ( $field eq 'logd' );    # This is the LogDispatch object
+        next if ( $field eq 'name' );    # This is the LogDispatch logger name
+
+        $logHash{$field} =~ s/\|/&vbar;/g;
+        $logHash{$field} =~ s/\n/&#0A;/sg;
+        print STDERR "Process $field value $logHash{$field}\n" if TRACE;
+        $message =~ s/\$$field/$logHash{$field}/g;
+    }
+
+    # Remove any remaining tokens
+    $message =~ s/\$[a-zA-Z]{4,10}//g;
+
+    print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
 
     # Item10764, SMELL UNICODE: actually, perhaps we should open the stream this
     # way for any encoding, not just utf8. Babar says: check what Catalyst does.

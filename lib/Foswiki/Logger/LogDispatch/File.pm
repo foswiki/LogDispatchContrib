@@ -22,7 +22,7 @@ use Foswiki::Logger::LogDispatch::EventIterator ();
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
-use constant TRACE => 1;
+use constant TRACE => 0;
 
 sub new {
     my $class = shift;
@@ -42,13 +42,13 @@ sub new {
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
         use Log::Dispatch::File;
-        my $canFilter;
+        my $hasFilter = 0;
 
         foreach my $file ( keys %FileRange ) {
             my ( $min_level, $max_level, $filter ) =
               split( /:/, $FileRange{$file}, 3 );
             if ($filter) {
-                $canFilter = 1;
+                $hasFilter = 1;
                 next;
             }
             print STDERR "File: Adding $file as $min_level-$max_level\n"
@@ -66,7 +66,9 @@ sub new {
                 )
             );
         }
-        undef *Foswiki::Logger::LogDispatch::File::log unless ($canFilter);
+        my $enstr = ($hasFilter) ? "ENABLED\n" : "DISABLED\n";
+        print STDERR "Filtered logging will be $enstr" if TRACE;
+        undef *Foswiki::Logger::LogDispatch::File::log unless ($hasFilter);
     }
 
     return bless( { fileMap => \%FileRange }, $class );
@@ -100,6 +102,9 @@ and then removes the method.
 =cut
 
 sub log {
+    use Data::Dumper;
+    print STDERR "LOG CALLED: " . Data::Dumper->Dumper( $_[1] ) . "\n" if TRACE;
+
     my $this  = shift;
     my $fhash = shift;
 

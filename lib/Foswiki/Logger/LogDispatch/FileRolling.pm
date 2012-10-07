@@ -25,7 +25,7 @@ use Foswiki::Logger::LogDispatch::EventIterator ();
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
-use constant TRACE => 1;
+use constant TRACE => 0;
 
 sub new {
     my $class = shift;
