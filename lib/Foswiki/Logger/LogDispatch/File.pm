@@ -15,6 +15,7 @@ use Log::Dispatch to allow logging to almost anything.
 =cut
 
 use Log::Dispatch                               ();
+use Log::Dispatch::File                         ();
 use Foswiki::ListIterator                       ();
 use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::FileUtil      ();
@@ -58,34 +59,45 @@ sub new {
     }
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
-        use Log::Dispatch::File;
-        my $hasFilter = 0;
-
         foreach my $file ( keys %FileRange ) {
             my ( $min_level, $max_level, $filter ) =
               split( /:/, $FileRange{$file}, 3 );
             if ($filter) {
-                $hasFilter = 1;
-                next;
+                require Foswiki::Logger::LogDispatch::FileFiltered;
+                print STDERR
+"File: Adding Filtered $file as $min_level-$max_level, $filter\n"
+                  if TRACE;
+                $logd->{dispatch}->add(
+                    Foswiki::Logger::LogDispatch::FileFiltered->new(
+                        name      => 'file-' . $file,
+                        min_level => $min_level,
+                        max_level => $max_level,
+                        filename  => "$Foswiki::cfg{Log}{Dir}/$file.log",
+                        mode      => '>>',
+                        binmode   => $logd->binmode(),
+                        newline   => 1,
+                        filter    => "$filter",
+                        callbacks => \&_flattenLog,
+                    )
+                );
             }
-            print STDERR "File: Adding $file as $min_level-$max_level\n"
-              if TRACE;
-            $logd->{dispatch}->add(
-                Log::Dispatch::File->new(
-                    name      => 'file-' . $file,
-                    min_level => $min_level,
-                    max_level => $max_level,
-                    filename  => "$Foswiki::cfg{Log}{Dir}/$file.log",
-                    mode      => '>>',
-                    binmode   => $logd->binmode(),
-                    newline   => 1,
-                    callbacks => \&_flattenLog,
-                )
-            );
+            else {
+                print STDERR "File: Adding $file as $min_level-$max_level\n"
+                  if TRACE;
+                $logd->{dispatch}->add(
+                    Log::Dispatch::File->new(
+                        name      => 'file-' . $file,
+                        min_level => $min_level,
+                        max_level => $max_level,
+                        filename  => "$Foswiki::cfg{Log}{Dir}/$file.log",
+                        mode      => '>>',
+                        binmode   => $logd->binmode(),
+                        newline   => 1,
+                        callbacks => \&_flattenLog,
+                    )
+                );
+            }
         }
-        my $enstr = ($hasFilter) ? "ENABLED\n" : "DISABLED\n";
-        print STDERR "Filtered logging will be $enstr" if TRACE;
-        undef *Foswiki::Logger::LogDispatch::File::log unless ($hasFilter);
     }
 
     return bless( { fileMap => \%FileRange }, $class );
@@ -135,57 +147,6 @@ sub finish {
     my $this = shift;
 
     undef $this->{fileMap};
-
-}
-
-=begin TML
-
----++ ObjectMethod log()
-This method is only called if a filter has been specified in the File map.  Log::Dispatch
-does not provide a way to filter messages, so this routine determines if the filter matches
-the log record, adds the log method just for this record, calls the log_to function directly
-and then removes the method.
-
-=cut
-
-sub log {
-    use Data::Dumper;
-    print STDERR "LOG CALLED: " . Data::Dumper->Dumper( $_[1] ) . "\n" if TRACE;
-
-    my $this  = shift;
-    my $fhash = shift;
-
-    my $message = _flattenLog(%$fhash);
-    ($message) = $message =~ m/(.*)/;    #untaint
-
-    foreach my $file ( keys %{ $this->{fileMap} } ) {
-        my ( $min_level, $max_level, $filter ) =
-          split( /:/, $this->{fileMap}->{$file}, 3 );
-        if ( $filter && $message =~ qr/$filter/ ) {
-            print STDERR
-              "File: Adding $file as $min_level-$max_level filter $filter\n"
-              if TRACE;
-            $fhash->{logd}->{dispatch}->add(
-                Log::Dispatch::File->new(
-                    name              => 'file-' . $file,
-                    min_level         => $min_level,
-                    max_level         => $max_level,
-                    filename          => "$Foswiki::cfg{Log}{Dir}/$file.log",
-                    mode              => '>>',
-                    binmode           => $fhash->{logd}->binmode(),
-                    newline           => 1,
-                    close_after_write => 1,
-                )
-            );
-
-            $fhash->{logd}->{dispatch}->log_to(
-                name    => "file-$file",
-                level   => $fhash->{level},
-                message => "$message"
-            );
-            $fhash->{logd}->{dispatch}->remove("file-$file");
-        }
-    }
 
 }
 

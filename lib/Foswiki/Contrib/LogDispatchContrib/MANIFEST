@@ -13,6 +13,7 @@ lib/Foswiki/Contrib/LogDispatchContrib/Config.spec 0644
 lib/Foswiki/Logger/LogDispatch.pm 0644
 lib/Foswiki/Logger/LogDispatch/EventIterator.pm 0644
 lib/Foswiki/Logger/LogDispatch/File.pm 0644
+lib/Foswiki/Logger/LogDispatch/FileFiltered.pm 0644
 lib/Foswiki/Logger/LogDispatch/FileRolling.pm 0644
 lib/Foswiki/Logger/LogDispatch/FileUtil.pm 0644
 lib/Foswiki/Logger/LogDispatch/Screen.pm 0644
