@@ -110,6 +110,16 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 is appended to the filename prefix, and the substitution is
 applied.  For example:  =error-2012-09.log= or =events-2012-12.log=
 
+<div class="foswikiHelp">%T% In order to "continue" an existing !PlainFile log using !LogDispatchContrib:
+   * Quiesce your Foswiki system to avoid writing new log messages
+   * Move the old log files to the name that LogDispatch will use:
+      * =events.log= to =events.yyyymm=
+      * =debug.log= to =debug.yyyymm=
+      * =error.log= to =error.yyyymm=
+   * Using bin/configure, change the Pattern to =%d{yyyyMM}= and verify that !FileRolling is enabled.
+   * Restart / re-enable your server
+</div>
+
 The following character patterns are supported, however many will not make
 sense as part of a filename.
 
