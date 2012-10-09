@@ -4,7 +4,7 @@ package Foswiki::Logger::LogDispatch::FileFiltered;
 use strict;
 use warnings;
 
-use base qw( Log::Dispatch::File );
+our @ISA = ('Log::Dispatch::File');
 
 sub new {
     my $proto = shift;
