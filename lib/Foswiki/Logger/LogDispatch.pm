@@ -169,8 +169,8 @@ sub log {
         && defined $Foswiki::cfg{Log}{Action}{ $fhash->{action} }
         && !$Foswiki::cfg{Log}{Action}{ $fhash->{action} } );
 
-    #$this->SUPER::setCommonFields($fhash)
-    #  if ( $Foswiki::Plugins::VERSION > 2.2 );
+    Foswiki::Logger::setCommonFields($fhash)
+      if ( $Foswiki::Plugins::VERSION > 2.2 );
 
     $fhash->{extra} = join( ' ', @{ $fhash->{extra} } )
       if ( ref( $fhash->{extra} ) eq 'ARRAY' );
