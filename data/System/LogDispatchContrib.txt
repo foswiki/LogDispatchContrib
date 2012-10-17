@@ -190,7 +190,9 @@ system log. It is disabled by default.  It has 5 configuration options:
 |  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]]) |
 |  Dependencies: | %$DEPENDENCIES% |
 |  Version: | %$VERSION% |
+|  Release: | %$RELEASE% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  1.0.1 (15 Oct 2012): | Improved filter implementation,  improved file layout implementaiton |
 |  1.0.0 (XX Mmm 20XX): | Initial version |
 |  Home: | http://foswiki.org/Extensions/%TOPIC% |
 |  Support: | http://foswiki.org/Support/%TOPIC% |
