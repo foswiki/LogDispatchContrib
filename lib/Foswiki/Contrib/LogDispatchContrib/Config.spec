@@ -1,5 +1,5 @@
 #---+ Logging and Statistics
-#---++ LogDispatch configuration
+#---++ LogDispatchContrib
 # With LogDispatch, multiple logging methods can be enabled at the same time.
 # For similar behavior to the default Foswiki loggers, enable either the FileRolling
 # or the File logger,  and also enable the Screen logger.
@@ -9,14 +9,14 @@
 # <ul><li>The <code>Screen</code> logger will write errors and other critical messages to the STDERR file,  which was also done by the default Foswiki loggers</li>
 # <li>The <code>Syslog</code> logger uses Sys::Syslog to write to the syslogd socket for local or remote logging.</li></ul>
 
-# **SELECT none,hash,x.x.x.x DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# **SELECT none,hash,x.x.x.x**
 # Hide IP Addresses logged in the event log.  Default: IP addresses are logged.<ul>
 # <li><code>x.x.x.x</code> will log that in the field, meaning that multiple requests from the same IP address cannot be correlated.</li>
 # <li><code>hash</code> will encode the ip addresses, so they can be correlated, but not identified.</li></ul>
 # Note: the hash method does not work for IPv6 addresses.
 $Foswiki::cfg{Log}{LogDispatch}{MaskIP} = 'none';
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation})**
+# **PERL EXPERT**
 # Defines which logger should be iterated over using <code>Func::eachEventSince()</code>.  If multiple loggers are active for the same logging level,
 # the first listed logger will be used.  If no loger is active for a level, an empty iterator is returned.
 # A logging level should only be included once in the list.  In the case of the <code>File</code> and
@@ -35,12 +35,12 @@ $Foswiki::cfg{Log}{LogDispatch}{EventIterator} = {
     'emergency' => 'FileRolling,File',
 };
 
-# **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# **BOOLEAN**
 # Enable the rolling file logger.  This method logs to a simple text file,
 # date-stamping each filename per the specified pattern.
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
+# **PERL EXPERT DISPLAY_IF {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
 # <code>filename-prefix => 'minimum:maximum',</code> (be sure to include comma!)<br />
 # The ranges may overlap or skip levels<br />
@@ -53,7 +53,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
     error  => 'notice:emergency',
 };
 
-# **STRING 20** DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
+# **STRING 20** DISPLAY_IF {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Pattern to use for the filenames.  File names are built from the log class (error, debug, events) and this suffix.
 # Date format is specified by <code>%d{..pattern..}%</code>.  Valid pattern characters include <ul><li>y - Year digit</li>
 # <li><code>M</code> - Month digit or name if > 2 characters</li><li><code>d</code> - day</li><li><code>$</code> - Process ID</li></ul>The
@@ -61,7 +61,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
 # but is incompatible with the <code>eachEventSince</code> log processor..
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{FileRolling}{Enabled}**
+# **PERL EXPERT DISPLAY_IF {Log}{LogDispatch}{FileRolling}{Enabled}**
 # Array of fields to be joined together to build the log record.  The default value will generate log records compatible with the default Foswiki loggers
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
@@ -72,12 +72,12 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} =  {
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
-# **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# **BOOLEAN**
 # Enable the plain file logger.  This method logs to a simple text file
 # without any locking or file rotation.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{File}{Enabled}**
+# **PERL EXPERT DISPLAY_IF {Log}{LogDispatch}{File}{Enabled}**
 # Specifies the range of levels <em>by name</em> that are logged to each file. Entered in format of:<br />
 # <code>filename-prefix => 'minimum:maximum',</code> (be sure to include the trailing comma!)<br />
 # The ranges may overlap or skip levels, but must be in order of lower:higher.<br />
@@ -93,7 +93,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     error  => 'notice:emergency',
 };
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{File}{Enabled}**
+# **PERL EXPERT DISPLAY_IF {Log}{LogDispatch}{File}{Enabled}**
 # Array of fields to be joined together to build the log record.  The default value will generate log records compatible with the default Foswiki loggers
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
@@ -104,22 +104,22 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} =  {
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
-# **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# **BOOLEAN**
 # Enable the "Screen" logger.  This method directs messages to the
 # STDERR output.  STDERR is normally recorded in the Apache error log.
 # When enabled, error, critical, emergency and alert messages are
 # written to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} = $TRUE;
 
-# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF {Log}{LogDispatch}{Screen}{Enabled}**
 # Choose the minimum log level logged to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel} = 'error';
 
-# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF {Log}{LogDispatch}{Screen}{Enabled}**
 # Choose the maximum log level logged to STDERR.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel} = 'emergency';
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Screen}{Enabled}**
+# **PERL EXPERT DISPLAY_IF  {Log}{LogDispatch}{Screen}{Enabled}**
 # Array of fields to be joined together to build the log record.  The default value will generate log records compatible with the default Foswiki loggers
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
@@ -130,28 +130,28 @@ $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} =  {
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
-# **BOOLEAN DISPLAY_IF /LogDispatch/i.test({Log}{Implementation})**
+# **BOOLEAN**
 # Enable the "Syslog" logger.  This method uses the system syslog utility
 # to log messages to the system log.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Enabled} = $FALSE;
 
-# **SELECT auth,authpriv,cron,daemon,kern,local0,local1,local2,local3,local4,local5,local6,local7,mail,news,syslog,user,uucp DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **SELECT auth,authpriv,cron,daemon,kern,local0,local1,local2,local3,local4,local5,local6,local7,mail,news,syslog,user,uucp DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose the facility used by the Syslog logger
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility} = 'user';
 
-# **STRING 20 DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **STRING 20 DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose an identifier to prepend to each log record
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier} = 'Foswiki';
 
-# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose the minimum log level logged to syslog.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel} = 'warning';
 
-# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Choose the maximum log level logged to syslog.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel} = 'emergency';
 
-# **PERL EXPERT /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **PERL EXPERT DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Array of fields to be joined together to build the log record.  The default value will generate log records compatible with the default Foswiki loggers
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
@@ -162,7 +162,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
-# **BOOLGROUP EXPERT ndelay,noeol,nofatal,nonul,nowait,perror,pid DISPLAY_IF /LogDispatch/i.test({Log}{Implementation}) && {Log}{LogDispatch}{Syslog}{Enabled}**
+# **BOOLGROUP EXPERT ndelay,noeol,nofatal,nonul,nowait,perror,pid DISPLAY_IF {Log}{LogDispatch}{Syslog}{Enabled}**
 # Specify log options to Sys::Syslog.  See the documentation for openlog and
 # http://perldoc.perl.org/Sys/Syslog.html for details.  Recommended options are:
 # <code>nofatal</code> - Logger should not die if syslog is unavailable,  and <code>pid</code> - Include the process ID in the log message.
