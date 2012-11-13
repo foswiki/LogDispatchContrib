@@ -15,7 +15,7 @@ package Foswiki::Contrib::LogDispatchContrib;
 use strict;
 use warnings;
 
-use version; our $VERSION = version->declare("v1.0.1");
+our $VERSION = 'v1.0.1';
 our $RELEASE = '1.0.1';
 
 our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
