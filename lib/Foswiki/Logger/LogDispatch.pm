@@ -261,12 +261,17 @@ sub _flattenLog {
     }
 
     # Extract non-blank characters from delimiter for encoding
-    my ($delim) = @$logLayout_ref[0] =~ m/(\S*)/;
-    my $message = @$logLayout_ref[0]
+    my ($delim) = @$logLayout_ref[0] =~ m/(\S+)/;
+    my $ldelim  = @$logLayout_ref[0];
+    my $tdelim  = @$logLayout_ref[0];
+    $ldelim =~ s/^\s+//g;
+    $tdelim =~ s/\s+$//g;
+
+    my $message = $ldelim
       . join(
         @$logLayout_ref[0],
-        map { s/([$delim\n])/'&#'.ord($1).';'/gex; $_ } @line
-      ) . @$logLayout_ref[0];
+        map { s/([$delim\xff])/'&#'.ord($1).';'/gex; $_ } @line
+      ) . $tdelim;
 
     print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
 
@@ -287,7 +292,7 @@ sub _flattenLog {
 
 =begin TML
 
----++ StaticMethod eachEventSince($time, $level) -> $iterator
+---++ StaticMethod eachEventSince($time, \@levels, [qw/field list/]) -> $iterator
 
 See Foswiki::Logger for the interface.
 
