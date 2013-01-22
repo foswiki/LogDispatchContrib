@@ -104,7 +104,8 @@ sub parseRecord {
             $fhash{action}     || '',
             $fhash{webTopic}   || '',
             $fhash{extra}      || '',
-            $fhash{remoteAddr} || ''
+            $fhash{remoteAddr} || '',
+            $fhash{level}
         ]
       );
 }
