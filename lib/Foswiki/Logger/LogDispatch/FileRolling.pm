@@ -14,10 +14,12 @@ use Log::Dispatch to allow logging to almost anything.
 
 =cut
 
+use Fcntl qw(:flock);
 use Log::Dispatch                               ();
 use Foswiki                                     ();
 use Foswiki::Time                               ();
 use Foswiki::ListIterator                       ();
+use Foswiki::AggregateIterator                  ();
 use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::FileUtil      ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
@@ -234,12 +236,12 @@ sub eachEventSince() {
         next unless -r $logfile;
         my $fh;
         if ( open( $fh, '<', $logfile ) ) {
-            push(
-                @iterators,
-                new Foswiki::Logger::LogDispatch::EventIterator(
-                    $fh, $time, $level
-                )
-            );
+            my $logIt =
+              new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time,
+                $level );
+            push( @iterators, $logIt );
+            $logIt->{logLocked} =
+              eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
         }
         else {
 

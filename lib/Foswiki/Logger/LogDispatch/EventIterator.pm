@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use utf8;
 use Assert;
+use Fcntl qw(:flock);
 
 # Private subclass of LineIterator that splits events into fields
 require Foswiki::LineIterator;
@@ -18,14 +19,22 @@ sub new {
     return $this;
 }
 
+sub DESTROY {
+    my $this = shift;
+    flock( $this->{handle}, LOCK_UN )
+      if ( defined $this->{logLocked} );
+    close( delete $this->{handle} ) if ( defined $this->{handle} );
+}
+
 sub hasNext {
     my $this = shift;
     return 1 if defined $this->{_nextEvent};
     while ( $this->SUPER::hasNext() ) {
         my $ln = $this->SUPER::next();
-        while ( substr( $ln, -1 ) ne '|' && $this->SUPER::hasNext() ) {
-            $ln .= "\n" . $this->SUPER::next();
-        }
+        $ln =~ s/&#255;&#10;/\n/g;    # Reverse newline encoding
+
+        #SMELL: This whole process needs to reverse the record as defined
+        #       in LogDispatch::_flattenLog() and the configuration.
         my @line = split( /\s*\|\s*/, $ln );
         shift @line;    # skip the leading empty cell
         next unless scalar(@line) && defined $line[0];
@@ -50,9 +59,54 @@ sub hasNext {
 
 sub next {
     my $this = shift;
-    my $data = $this->{_nextEvent};
+    my ( $fhash, $data ) = parseRecord( $this->{_level}, $this->{_nextEvent} );
+
+    #use Data::Dumper;
+    #print STDERR '_nextEvent ' . Data::Dumper::Dumper( \$this->{_nextEvent} ) .
+    #             '$fhash ' . Data::Dumper::Dumper( \$fhash ) .
+    #             '$data ' . Data::Dumper::Dumper( \$data ) .
+    #             "\n";
+
     undef $this->{_nextEvent};
     return $data;
+}
+
+sub parseRecord {
+    my $level = shift;    # Level parsed from record or assumed.
+    my $data  = shift;    # Array ref of raw fields from record.
+    my %fhash;            # returned hash of identified fields
+    $fhash{level} = $level;
+
+#SMELL: This assumes a fixed layout record.  Needs to be updated to reverse the process
+#       performed in Log::Dispatch::_flattenLog()
+    if ( $level eq 'info' ) {
+        $fhash{epoch}      = shift @$data;
+        $fhash{user}       = shift @$data;
+        $fhash{action}     = shift @$data;
+        $fhash{webTopic}   = shift @$data;
+        $fhash{extra}      = shift @$data;
+        $fhash{remoteAddr} = shift @$data;
+    }
+    elsif ( $level =~ m/warning|error|critical|alert|emergency|notice/ ) {
+        $fhash{epoch} = shift @$data;
+        $fhash{extra} = join( ' ', @$data );
+    }
+    elsif ( $level eq 'debug' ) {
+        $fhash{epoch} = shift @$data;
+        $fhash{extra} = join( ' ', @$data );
+    }
+    return \%fhash,
+
+      (
+        [
+            $fhash{epoch},
+            $fhash{user}       || '',
+            $fhash{action}     || '',
+            $fhash{webTopic}   || '',
+            $fhash{extra}      || '',
+            $fhash{remoteAddr} || ''
+        ]
+      );
 }
 
 1;

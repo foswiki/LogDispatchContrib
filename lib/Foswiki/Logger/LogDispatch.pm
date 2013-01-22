@@ -270,7 +270,7 @@ sub _flattenLog {
     my $message = $ldelim
       . join(
         @$logLayout_ref[0],
-        map { s/([$delim\xff])/'&#'.ord($1).';'/gex; $_ } @line
+        map { s/([$delim\n])/'&#255;&#'.ord($1).';'/gex; $_ } @line
       ) . $tdelim;
 
     print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
