@@ -49,7 +49,7 @@ sub new {
             info => [
                 ' | ', [ ' ', 'timestamp', 'level' ],
                 'user', 'action',
-                'webTopic', [ ' ', 'extra', 'agent', ],
+                'webTopic', [ ' ', 'extra', 'agent', '*' ],
                 'remoteAddr'
             ],
             DEFAULT => [
@@ -130,7 +130,7 @@ sub _flattenLog {
       ? $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{$level}
       : $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{DEFAULT};
 
-    push @_, Layout_ref => $logLayout_ref;
+    push @_, _Layout_ref => $logLayout_ref;
 
     goto &Foswiki::Logger::LogDispatch::_flattenLog;
 }

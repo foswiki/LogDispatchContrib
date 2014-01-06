@@ -85,8 +85,8 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
 # Ex. <code>notice:warning</code> would be valid,  but <code>warning:notice</code> is invalid.
 # Additional files can be added following the same format.  By default, Foswik only logs to debug, info, warning and error levels.<br /><br/>
 # An optional 3rd parameter may be specified <code>minimum:maximum:filter</code>.  If a simple matching string or regular expression is provided, the log messages to the named file will be 
-# further filtered by the pattern match and only logged when the pattern matches.   For example to send all authentication failures to a unique log file
-# Add a line:   <code>authfail => 'info:info:AUTHENTICATION FAILURE',</code>   Note: Filtered files will not be considered for <codeLeachEventSince</code> processing.
+# further filtered by the pattern match and only logged when the pattern matches.  The pattern is tested against the completely assembled log record.  For example to send all authentication failures to a unique log file
+# Add a line:   <code>authfail => 'info:info:AUTHENTICATION FAILURE',</code>   For case-insensitive matches, prefix the string with <code>(?i)</code>, for example: <code>... => 'info:info:(?i)authentication'</code> Note: Filtered files will not be considered for <code>eachEventSince</code> processing.
 $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     debug  => 'debug:debug',
     events => 'info:info',
@@ -100,7 +100,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
 # Arrays can be nested no more than one level deep.   Valid fields are:
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} =  {
-        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', ], 'remoteAddr'],
+        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
@@ -126,7 +126,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel} = 'emergency';
 # Arrays can be nested no more than one level deep.   Valid fields are:
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} =  {
-        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', ], 'remoteAddr'],
+        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*',], 'remoteAddr'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
@@ -158,7 +158,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel} = 'emergency';
 # Arrays can be nested no more than one level deep.   Valid fields are:
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
-        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', ], 'remoteAddr'],
+        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 

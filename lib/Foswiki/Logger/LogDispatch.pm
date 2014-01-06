@@ -138,7 +138,7 @@ can be called with an array of additional fields to log.
 
 sub log {
     my $this = shift;
-    my $fhash;
+    my $fhash;    # Hash of fields to be logged, either passed or built below
 
     # Native interface:  Just pass through the hash
     if ( ref( $_[0] ) eq 'HASH' ) {
@@ -172,17 +172,12 @@ sub log {
     Foswiki::Logger::setCommonFields($fhash)
       if ( $Foswiki::Plugins::VERSION > 2.2 );
 
+    # Collapse positional parameters into the "extra" field
     $fhash->{extra} = join( ' ', @{ $fhash->{extra} } )
       if ( ref( $fhash->{extra} ) eq 'ARRAY' );
 
-    $fhash->{logd} = $this;    # Logger object needed for some loggers.
-    $fhash->{message} ||=
-      '';    # Required field that will be overwritten by a callback.
-
     my $now = _time();
     $fhash->{timestamp} = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
-
-    $this->init() unless $this->{dispatch};
 
     # Optional obfsucation of IP addresses for some locations.  However
     # preserve them for auth failures.
@@ -209,16 +204,28 @@ sub log {
         }
     }
 
+    $this->init() unless $this->{dispatch};
+
+    my %loghash;    # Parameters for Log::Dispatch calls
+    $loghash{level} = $fhash->{level};
+    $loghash{message} ||=
+      '';           # Required field that will be overwritten by a callback.
+
+    # Extended data passsed through for use in callback
+    $loghash{_logd}   = $this;  # Logger object needed for some loggers.
+    $loghash{_fields} = $fhash; # Hash of fields to be assembled into "message".
+
     # Dispatch all of the registred output classes
-    $this->{dispatch}->log(%$fhash);
+    $this->{dispatch}->log(%loghash);
 
     # And any discrete logging per handler
+    # SMELL:  None of the loggers support this, so it hasn't been tested
     foreach my $method ( keys %{ $this->{methods} } ) {
         my $handler = $this->{methods}->{$method};
         if ( $handler->can('log') ) {
-            print STDERR " LogDispatch.pm thinks $method should LOG \n"
-              if TRACE;
-            $handler->log($fhash);
+            print STDERR
+              " LogDispatch.pm thinks $method should LOG \n";    #  if TRACE;
+            $handler->log(%loghash);
         }
     }
 }
@@ -235,35 +242,47 @@ fields into a single record per a format token.
 sub _flattenLog {
 
     my %logHash = @_;
+    my @fields  = keys %{ $logHash{_fields} };
 
-#use Data::Dumper qw( Dumper );
-#use Carp qw<longmess>;
-#my $mess = longmess();
-#print STDERR "===== CALLER =====\n" . Dumper ( $mess ) . "========\n";
-#print STDERR "===== INCOMING PARAMS ===\n" . Dumper( @_ ) . "========\n";
-#print STDERR "===== INCOMING HASH ===\n" . Dumper( %logHash ) . "========\n";
-#print STDERR "===== CONFIG HASH ===\n" . Dumper( $Foswiki::cfg{Log}{LogDispatch}{FlatLayout} ) . "========\n";
+    #use Data::Dumper qw( Dumper );
+    #use Carp qw<longmess>;
+    #print STDERR " KEYS IN CALL " . Data::Dumper::Dumper (\@fields);
+    #my $mess = longmess();
+    #print STDERR "===== CALLER =====\n" . Dumper($mess) . "========\n";
+    #print STDERR "===== INCOMING PARAMS ===\n" . Dumper(@_) . "========\n";
+    #print STDERR "===== INCOMING HASH ===\n" . Dumper(%logHash) . "========\n";
+    #print STDERR "===== CONFIG HASH ===\n"
+    #  . Dumper( $Foswiki::cfg{Log}{LogDispatch}{FlatLayout} )
+    #  . "========\n";
 
-    my $logLayout_ref = $logHash{Layout_ref};
+    my $logLayout_ref = $logHash{_Layout_ref};
 
     my @line;    # Collect the results
     foreach ( @$logLayout_ref[ 1 .. $#{$logLayout_ref} ] ) {
         if ( ref($_) eq 'ARRAY' ) {
-            push @line,
-              join(
-                @{$_}[0],
-                map( ( $logHash{$_} || '' ), @{$_}[ 1 .. $#{$_} ] )
-              );
+            my @subfields;
+            foreach ( @{$_}[ 1 .. $#{$_} ] ) {
+                my $ph = ( $_ eq '*' ) ? "\001EXT\001" : '';
+                push @subfields, ( $logHash{_fields}{$_} || '' ) . $ph;
+                for my $i ( 0 .. $#fields ) {
+                    $fields[$i] = '' if $fields[$i] eq $_;
+                }
+            }
+            push @line, join( @{$_}[0], @subfields );
         }
         else {
-            push @line, ( $logHash{$_} || '' );
+            my $ph = ( $_ eq '*' ) ? "\001EXT\001" : '';
+            push @line, ( $logHash{_fields}{$_} || '' ) . $ph;
+            for my $i ( 0 .. $#fields ) {
+                $fields[$i] = '' if $fields[$i] eq $_;
+            }
         }
     }
 
     # Extract non-blank characters from delimiter for encoding
-    my ($delim) = @$logLayout_ref[0] =~ m/(\S+)/;
-    my $ldelim  = @$logLayout_ref[0];
-    my $tdelim  = @$logLayout_ref[0];
+    my ($delim) = @$logLayout_ref[0] =~ m/(\S+)/;    # Field separator
+    my $ldelim  = @$logLayout_ref[0];                # Leading delimiter
+    my $tdelim  = @$logLayout_ref[0];                # Trailing delimiter
     $ldelim =~ s/^\s+//g;
     $tdelim =~ s/\s+$//g;
 
@@ -272,6 +291,15 @@ sub _flattenLog {
         @$logLayout_ref[0],
         map { s/([$delim\n])/'&#255;&#'.ord($1).';'/gex; $_ } @line
       ) . $tdelim;
+
+    my $extra = '';
+    foreach ( sort @fields ) {
+        next unless $_;
+        next unless $logHash{_fields}{$_};
+        $extra = join( ' ', $logHash{_fields}{$_} );
+    }
+
+    $message =~ s/\001EXT\001/$extra/g;
 
     print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
 
@@ -331,8 +359,9 @@ sub eachEventSince {
     }
 
     unless ( $handler && $handler->can('eachEventSince') ) {
-        Foswiki::Func::writeWarning(
-            "eachEventSince not supported for $eventHandler.");
+        Foswiki::Func::writeWarning( "eachEventSince not supported for"
+              . ( $eventHandler || "unknown" )
+              . "." );
         require Foswiki::ListIterator;
         return new Foswiki::ListIterator( [] );
     }

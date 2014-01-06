@@ -39,9 +39,33 @@ sequence that has requested that log level.
 =debug-0 info-1, notice-2, warning-3, error-4, critical-5, alert-6 and emergency-7=,  however Foswiki uses only a subset of these levels:
    * =debug= level 0 is used for some error reporting, and when debugging is enabled in the core and for some extensions.
    * =info= level 1 is used for transation logging.  The following fields are written by default:
-| *Timestamp* and *log level* | *User ID* | *Action* | *Web.Topic* | *Agent String* | *IP Address* |
-| 2012-09-23T03:15:54Z info | guest | view | System.LogDispatchContrib | Firefox | 127.0.0.1 |
    * =warning=  Errors and other failures are written to the warning log level
+
+---+++ Fields available for logging
+
+| timestamp | A Foswiki timestamp in the format of 2013-12-04T03:12:39Z |
+| level | Log level: debug, info, warning |
+| user | Typically the logged in user / WikiName |
+| action | The web transaction:  save, view, viewfile, etc. |
+| webTopic | The fully qualified web.topicname |
+| extra | Catch-all field contains messages and other information |
+| agent | The browser agent when available |
+| remoteAddr | The remote IP address |
+| caller | For errors. the perl module that triggered the error |
+
+=extra= is a catch-all that is used in a number of different ways:
+   * Topic actions, it includes things like new topic name for move/copy, special commands like =delRev=, etc.
+   * Login/Logout actions including authentication failures
+   * From / To revision levels for RDiff
+   * Email address changes
+   * Whether topic was cached in view operation
+   * Registration email, login name, etc.
+   * Filename for attach operations
+   * The internal stack call trace for failures
+   * ... many others
+
+It's our intention to eventually move much of this information to fixed fields
+to facilitate more powerful log processing.
 
 ---++ Logger features and configuration
 
@@ -51,7 +75,53 @@ The followng common features apply to all Loggers:
 
    $ ==$Foswiki::cfg{Log}{LogDispatch}{MaskIP}==: Hide IP Addresses logged in the event log.  Default: IP addresses are logged.  Two possible options can be configured: ==x.x.x.x== will cause the =remoteAddr= field to be replaced with =x.x.x.x=.  ==hash== will cause the IP address to be scrambled, so that the original address is not easily identifiable, but multiple transactions from the same IP address will be logged using the same address.  Note: the hash method does not work for IPv6 addresses.
    $ ==$Foswiki::cfg{Log}{LogDispatch}{EventIterator}==: Specified which logger should be used to retrieve messages when the =eachEventSince= function is used.   This is an _expert_ level setting. See the help in =bin/configure= for more information.
-   $ ==$Foswiki::cfg{Log}{LogDispatch}{FlatLayout}==: Defines the record layout used to write the log to a flat file.  This is an _expert_ level setting. See the help in =bin/configure= for more information.  Currently a common format can be set the four supported loggers.
+
+The log layout feature applies to all of the flat record loggers.
+
+   $ ==$Foswiki::cfg{Log}{LogDispatch}{== _&lt;LoggerName&gt;_ ==}{Layout}==; Specifies an array of fields that defines the flat log record layout.  This is an expert level parameter
+
+The log file layout default settings are set to match the Plain and Compatibility file loggers as closely as possible.  The setting is an array of fields,  the first entry being the
+delimiter used when joinin the fields.   The left side of the list ==info =>== is the filename.   The right side is the list of fields.  So for a simple example,
+<verbatim>
+   fileprefix => ['delim', 'field1',   'field2'    ]
+   iphits =>     [  '|',   'timestamp'.'remoteAddr']
+</verbatim>
+would write out a simple file =iphits.log=, consisting of the timestamp and remote IP address.
+<verbatim>
+|2013-12-04T03:12:39Z|127.0.0.1|
+|2013-12-04T03:12:43Z|10.20.1.1|
+</verbatim>
+In order to generate logs fully compatible with the old loggers, the following additional values are allowed:
+   * Delimiter can include leading/trailing space,  " | ",   Space at beginning/end of record are trimmed.
+   * The array can be nested one level deep.  For example, in the below example, the first field combines the timestamp and log level joined with  a space
+   * The special field '*' is a wildcard, and logs any extra fields that were omitted from the layout.
+<verbatim>
+   $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}=  {
+        info => [' | ',                   # Delimiter
+                   [' ',                    # Field 1 - inner delimiter
+                    'timestamp',            # Field 1 first part
+                    'level'                 # Field 1 2nd part
+                   ],                       # End of field 1
+                 'user',                  # Field 2
+                 'action',                # Field 3
+                 'webTopic',              # Field 4
+                  [' ',                     # Field 5 - inner delimiter
+                   'extra',                 # Field 5 first subfield
+                   'agent',                 # Field 5 2nd subfield
+                   '*',                     # Field 5 - anything left over after record is built.
+                  ],                        # End of Field 5
+                 'remoteAddr'             # Field 6
+               ],
+        DEFAULT => [' | ',              # This layout covers any other log levels not explicitly defined
+                    [' ',                   # Field 1 - 2 subfields joined with space
+                     'timestamp',
+                     'level'],
+                    [' ',                   # Field 2 - 2 subfields joined with space
+                     'caller',
+                      'extra']
+                   ],
+        };
+</verbatim>
 
 ---+++ =LogDispatch::File= simple file logging
 
