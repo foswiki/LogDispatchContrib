@@ -68,7 +68,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 # Arrays can be nested no more than one level deep.   Valid fields are:
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} =  {
-        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', ], 'remoteAddr'],
+        info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 

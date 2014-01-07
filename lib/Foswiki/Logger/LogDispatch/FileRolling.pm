@@ -258,8 +258,8 @@ sub eachEventSince() {
         my $fh;
         if ( open( $fh, '<', $logfile ) ) {
             my $logIt =
-              new Foswiki::Logger::LogDispatch::File::EventIterator( $fh, $time,
-                $level );
+              new Foswiki::Logger::LogDispatch::FileRolling::EventIterator( $fh,
+                $time, $level );
             push( @iterators, $logIt );
             $logIt->{logLocked} =
               eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
