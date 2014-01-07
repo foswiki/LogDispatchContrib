@@ -1,4 +1,25 @@
 # See bottom of file for license and copyright information
+package Foswiki::Logger::LogDispatch::FileRolling::EventIterator;
+use strict;
+use warnings;
+use utf8;
+use Assert;
+
+use Fcntl qw(:flock);
+
+# Internal class for Logfile iterators.
+# So we don't break encapsulation of file handles.  Open / Close in same file.
+our @ISA = qw/Foswiki::Logger::LogDispatch::EventIterator/;
+
+# # Object destruction
+# # Release locks and file
+sub DESTROY {
+    my $this = shift;
+    flock( $this->{handle}, LOCK_UN )
+      if ( defined $this->{logLocked} );
+    close( delete $this->{handle} ) if ( defined $this->{handle} );
+}
+
 package Foswiki::Logger::LogDispatch::FileRolling;
 
 use strict;
@@ -15,9 +36,9 @@ use Log::Dispatch to allow logging to almost anything.
 =cut
 
 use Fcntl qw(:flock);
-use Log::Dispatch                               ();
-use Foswiki                                     ();
-use Foswiki::Time                               ();
+use Log::Dispatch ();
+use Foswiki       ();
+use Foswiki::Time qw(-nofoswiki);
 use Foswiki::ListIterator                       ();
 use Foswiki::AggregateIterator                  ();
 use Foswiki::Configure::Load                    ();
@@ -237,7 +258,7 @@ sub eachEventSince() {
         my $fh;
         if ( open( $fh, '<', $logfile ) ) {
             my $logIt =
-              new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time,
+              new Foswiki::Logger::LogDispatch::File::EventIterator( $fh, $time,
                 $level );
             push( @iterators, $logIt );
             $logIt->{logLocked} =

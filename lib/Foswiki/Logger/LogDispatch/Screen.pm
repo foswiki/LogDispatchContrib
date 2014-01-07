@@ -15,7 +15,7 @@ use Log::Dispatch to allow logging to almost anything.
 =cut
 
 use Log::Dispatch;
-use Foswiki::Time                               ();
+use Foswiki::Time qw(-nofoswiki);
 use Foswiki::ListIterator                       ();
 use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::EventIterator ();

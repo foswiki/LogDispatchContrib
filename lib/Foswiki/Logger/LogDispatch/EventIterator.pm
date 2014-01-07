@@ -6,6 +6,7 @@ use warnings;
 use utf8;
 use Assert;
 use Fcntl qw(:flock);
+use Foswiki::Time qw(-nofoswiki);
 
 # Private subclass of LineIterator that splits events into fields
 require Foswiki::LineIterator;
@@ -17,13 +18,6 @@ sub new {
     $this->{_threshold} = $threshold;
     $this->{_level}     = $level;
     return $this;
-}
-
-sub DESTROY {
-    my $this = shift;
-    flock( $this->{handle}, LOCK_UN )
-      if ( defined $this->{logLocked} );
-    close( delete $this->{handle} ) if ( defined $this->{handle} );
 }
 
 sub hasNext {
@@ -40,7 +34,7 @@ sub hasNext {
         next unless scalar(@line) && defined $line[0];
         if (
             $line[0] =~ s/\s+$this->{_level}\s*$//    # test the level
-              # accept a plain 'old' format date with no level only if reading info (statistics)
+             # accept a plain 'old' format date with no level only if reading info (statistics)
             || $line[0] =~ /^\d{1,2} [a-z]{3} \d{4}/i
             && $this->{_level} eq 'info'
           )
