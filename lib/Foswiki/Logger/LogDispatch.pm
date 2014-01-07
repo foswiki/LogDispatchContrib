@@ -28,16 +28,10 @@ sub _time { return time() }
 use constant TRACE => 0;
 
 sub new {
-    my $class   = shift;
-    my $binmode = '';
-    my $log     = '';
+    my $class = shift;
+    my $binmode .= ":encoding(utf-8)";
+    my $log = '';
     my %methods;
-
-    if (   $Foswiki::cfg{Site}{CharSet}
-        && $Foswiki::cfg{Site}{CharSet} =~ /^utf-?8$/ )
-    {
-        $binmode .= ":encoding($Foswiki::cfg{Site}{CharSet})";
-    }
 
     return bless(
         {
@@ -301,20 +295,12 @@ sub _flattenLog {
 
     $message =~ s/\001EXT\001/$extra/g;
 
-    print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
-
-    # Item10764, SMELL UNICODE: actually, perhaps we should open the stream this
-    # way for any encoding, not just utf8. Babar says: check what Catalyst does.
-    unless ( $Foswiki::cfg{Site}{CharSet}
-        && $Foswiki::cfg{Site}{CharSet} =~ /^utf-?8$/ )
-    {
-        if ( utf8::is_utf8($message) ) {
-            require Encode;
-            $message =
-              Encode::encode( $Foswiki::cfg{Site}{CharSet}, $message, 0 );
-        }
+    unless ( utf8::is_utf8($message) ) {
+        require Encode;
+        $message = Encode::decode( 'utf-8', $message, 0 );
     }
 
+    print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
     return $message;
 }
 
