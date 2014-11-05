@@ -224,7 +224,7 @@ sub eachEventSince() {
           :                                 '';
 
         my $endincr;
-        my $enddate = Foswiki::Time::formatTime( _time(), 'iso', 'gmtime' );
+        my $enddate = Foswiki::Time::formatTime( _time(), 'iso', 'servertime' );
         ( $enddate, $endincr ) =
           Foswiki::Time::parseInterval( $enddate . '/' . $incr );
 
@@ -234,7 +234,7 @@ sub eachEventSince() {
 
         while ( $logtime <= $endincr ) {
             my $firstDate =
-              Foswiki::Time::formatTime( $logtime, 'iso', 'gmtime' );
+              Foswiki::Time::formatTime( $logtime, 'iso', 'servertime' );
             my $interval = $firstDate . '/' . $incr;
             my ( $epoch, $epincr ) = Foswiki::Time::parseInterval($interval);
 

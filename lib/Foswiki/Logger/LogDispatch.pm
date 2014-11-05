@@ -171,7 +171,8 @@ sub log {
       if ( ref( $fhash->{extra} ) eq 'ARRAY' );
 
     my $now = _time();
-    $fhash->{timestamp} = Foswiki::Time::formatTime( $now, 'iso', 'gmtime' );
+    $fhash->{timestamp} =
+      Foswiki::Time::formatTime( $now, 'iso', 'servertime' );
 
     # Optional obfsucation of IP addresses for some locations.  However
     # preserve them for auth failures.
@@ -275,8 +276,8 @@ sub _flattenLog {
 
     # Extract non-blank characters from delimiter for encoding
     my ($delim) = @$logLayout_ref[0] =~ m/(\S+)/;    # Field separator
-    my $ldelim  = @$logLayout_ref[0];                # Leading delimiter
-    my $tdelim  = @$logLayout_ref[0];                # Trailing delimiter
+    my $ldelim = @$logLayout_ref[0];                 # Leading delimiter
+    my $tdelim = @$logLayout_ref[0];                 # Trailing delimiter
     $ldelim =~ s/^\s+//g;
     $tdelim =~ s/\s+$//g;
 
