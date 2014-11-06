@@ -50,7 +50,8 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = $TRUE;
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
     debug  => 'debug:debug',
     events => 'info:info',
-    error  => 'notice:emergency',
+    configure => 'notice:notice',
+    error  => 'warning:emergency',
 };
 
 # **STRING 20 DISPLAY_IF="{Log}{LogDispatch}{FileRolling}{Enabled}"**
@@ -90,7 +91,8 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} = $FALSE;
 $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     debug  => 'debug:debug',
     events => 'info:info',
-    error  => 'notice:emergency',
+    configure => 'notice:notice',
+    error  => 'warning:emergency',
 };
 
 # **PERL EXPERT DISPLAY_IF="{Log}{LogDispatch}{File}{Enabled}"**
@@ -145,7 +147,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier} = 'Foswiki';
 
 # **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF="{Log}{LogDispatch}{Syslog}{Enabled}"**
 # Choose the minimum log level logged to syslog.
-$Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel} = 'warning';
+$Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel} = 'notice';
 
 # **SELECT debug,info,notice,warning,error,critical,alert,emergency DISPLAY_IF="{Log}{LogDispatch}{Syslog}{Enabled}"**
 # Choose the maximum log level logged to syslog.
@@ -162,7 +164,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
-# **BOOLGROUP EXPERT ndelay,noeol,nofatal,nonul,nowait,perror,pid DISPLAY_IF="{Log}{LogDispatch}{Syslog}{Enabled}"**
+# **BOOLGROUP ndelay,noeol,nofatal,nonul,nowait,perror,pid EXPERT DISPLAY_IF="{Log}{LogDispatch}{Syslog}{Enabled}"**
 # Specify log options to Sys::Syslog.  See the documentation for openlog and
 # http://perldoc.perl.org/Sys/Syslog.html for details.  Recommended options are:
 # <code>nofatal</code> - Logger should not die if syslog is unavailable,  and <code>pid</code> - Include the process ID in the log message.
