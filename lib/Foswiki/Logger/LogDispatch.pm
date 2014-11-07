@@ -180,7 +180,12 @@ sub log {
         && $Foswiki::cfg{Log}{LogDispatch}{MaskIP} ne 'none'
         && defined $fhash->{remoteAddr} )
     {
-        unless ( $fhash->{extra} =~ /^AUTHENTICATION FAILURE/ ) {
+        unless (
+            $fhash->{level} eq 'notice'
+            || ( defined $fhash->{extra}
+                && $fhash->{extra} =~ /^AUTHENTICATION FAILURE/ )
+          )
+        {
 
             if ( $Foswiki::cfg{Log}{LogDispatch}{MaskIP} eq 'x.x.x.x' ) {
                 $fhash->{remoteAddr} = 'x.x.x.x';
