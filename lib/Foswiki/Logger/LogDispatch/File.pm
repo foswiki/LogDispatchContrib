@@ -82,6 +82,8 @@ sub new {
     }
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
+        my $logdir = $Foswiki::cfg{Log}{Dir};
+        Foswiki::Configure::Load::expandValue($logdir);
         foreach my $file ( keys %FileRange ) {
             my ( $min_level, $max_level, $filter ) =
               split( /:/, $FileRange{$file}, 3 );
@@ -95,7 +97,7 @@ sub new {
                         name      => 'file-' . $file,
                         min_level => $min_level,
                         max_level => $max_level,
-                        filename  => "$Foswiki::cfg{Log}{Dir}/$file.log",
+                        filename  => "$logdir/$file.log",
                         mode      => '>>',
                         binmode   => $logd->binmode(),
                         newline   => 1,
@@ -112,7 +114,7 @@ sub new {
                         name      => 'file-' . $file,
                         min_level => $min_level,
                         max_level => $max_level,
-                        filename  => "$Foswiki::cfg{Log}{Dir}/$file.log",
+                        filename  => "$logdir/$file.log",
                         mode      => '>>',
                         binmode   => $logd->binmode(),
                         newline   => 1,

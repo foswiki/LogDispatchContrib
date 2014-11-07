@@ -102,6 +102,9 @@ sub new {
             my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
               || '-%d{yyyy-MM}.log';
 
+            my $logdir = $Foswiki::cfg{Log}{Dir};
+            Foswiki::Configure::Load::expandValue($logdir);
+
             foreach my $file ( keys %FileRange ) {
                 my ( $min_level, $max_level ) =
                   split( /:/, $FileRange{$file} );
@@ -113,7 +116,7 @@ sub new {
                         name      => 'rolling-' . $file,
                         min_level => $min_level,
                         max_level => $max_level,
-                        filename  => "$Foswiki::cfg{Log}{Dir}/$file$pattern",
+                        filename  => "$logdir/$file$pattern",
                         mode      => '>>',
                         binmode   => $logd->binmode(),
                         newline   => 1,

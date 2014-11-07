@@ -70,6 +70,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
+        notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
@@ -103,6 +104,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
+        notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
@@ -129,6 +131,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel} = 'emergency';
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*',], 'remoteAddr'],
+        notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
@@ -161,6 +164,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel} = 'emergency';
 # timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
+        notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
         DEFAULT => [' | ', [' ', 'timestamp', 'level'], [' ', 'caller', 'extra'] ],
         };
 
