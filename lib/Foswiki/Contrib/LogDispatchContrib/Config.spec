@@ -173,4 +173,4 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
 # http://perldoc.perl.org/Sys/Syslog.html for details.  Recommended options are:
 # <code>nofatal</code> - Logger should not die if syslog is unavailable,  and <code>pid</code> - Include the process ID in the log message.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Logopt} = 'nofatal,pid';
-
+1;
