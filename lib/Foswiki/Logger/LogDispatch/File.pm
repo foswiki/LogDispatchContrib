@@ -2,7 +2,6 @@
 package Foswiki::Logger::LogDispatch::File::EventIterator;
 use strict;
 use warnings;
-use utf8;
 use Assert;
 
 use Fcntl qw(:flock);
@@ -24,7 +23,6 @@ package Foswiki::Logger::LogDispatch::File;
 
 use strict;
 use warnings;
-use utf8;
 use Assert;
 
 =begin TML
@@ -196,7 +194,7 @@ sub eachEventSince() {
     }
 
     my $fh;
-    if ( open( $fh, '<', $log ) ) {
+    if ( open( $fh, '<:encoding(utf-8)', $log ) ) {
         my $logIt =
           new Foswiki::Logger::LogDispatch::File::EventIterator( $fh, $time,
             $level );

@@ -3,7 +3,6 @@ package Foswiki::Logger::LogDispatch::EventIterator;
 
 use strict;
 use warnings;
-use utf8;
 use Assert;
 use Fcntl qw(:flock);
 use Foswiki::Time qw(-nofoswiki);
@@ -34,7 +33,7 @@ sub hasNext {
         next unless scalar(@line) && defined $line[0];
         if (
             $line[0] =~ s/\s+$this->{_level}\s*$//    # test the level
-             # accept a plain 'old' format date with no level only if reading info (statistics)
+              # accept a plain 'old' format date with no level only if reading info (statistics)
             || $line[0] =~ /^\d{1,2} [a-z]{3} \d{4}/i
             && $this->{_level} eq 'info'
           )

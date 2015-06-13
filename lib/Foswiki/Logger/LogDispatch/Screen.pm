@@ -3,7 +3,6 @@ package Foswiki::Logger::LogDispatch::Screen;
 
 use strict;
 use warnings;
-use utf8;
 use Assert;
 
 =begin TML

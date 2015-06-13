@@ -3,7 +3,6 @@ package Foswiki::Logger::LogDispatch;
 
 use strict;
 use warnings;
-use utf8;
 
 use Assert;
 
@@ -301,10 +300,13 @@ sub _flattenLog {
 
     $message =~ s/\001EXT\001/$extra/g;
 
-    unless ( utf8::is_utf8($message) ) {
-        require Encode;
-        $message = Encode::decode( 'utf-8', $message, 0 );
-    }
+    #SMELL: This code isn't right for backwards compatibility.
+    #
+    #    unless ($Foswiki::UNICODE) {
+    #    unless ( utf8::is_utf8($message) ) {
+    #        require Encode;
+    #        $message = Encode::decode( 'utf-8', $message, 0 );
+    #    }
 
     print STDERR "FLAT MESSAGE: ($message) \n" if TRACE;
     return $message;
