@@ -37,7 +37,10 @@ sub check {
         {
             $prefix  = $1;
             $postfix = $3;
-            require Log::Log4perl::DateFormat;
+            eval "require Log::Log4perl::DateFormat";
+            return $this->ERROR(
+                "Required module Log::Log4perl::DateFormat missing.")
+              if $@;
             $formatted = Log::Log4perl::DateFormat->new($2);
             my $filename = $prefix . _format() . $postfix;
             $e .= $this->NOTE("Example filename: <code>events$filename</code>");
