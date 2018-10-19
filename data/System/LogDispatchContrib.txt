@@ -1,10 +1,7 @@
-<!--
-One line description, required for extensions repository catalog.
-   * Set SHORTDESCRIPTION = Advanced logging using Log::Dispatch
--->
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1539951643" format="1.1"  version="1"}%
 ---+!! LogDispatchContrib
 
-%SHORTDESCRIPTION%
+%FORMFIELD{"Description"}%
 
 %TOC%
 
@@ -17,14 +14,14 @@ methods to support alternate destinations.
 
 The following log methods are shipped by default:
 
-   $ ==LogDispatch::File==: A simple file based logger.  It does not do any file rotation or date stamping of the files.
-   $ ==LogDispatch::FileRolling==: A file based logger similar to the "Compatibility" logger used by default on Foswiki 1.0.  It logs to files named with a date stamp, for example events-2012-09.log.   The pattern for the file name is configurable. This logger supports several advanced features:
+   * ==LogDispatch::File==: A simple file based logger.  It does not do any file rotation or date stamping of the files.
+   * ==LogDispatch::FileRolling==: A file based logger similar to the "Compatibility" logger used by default on Foswiki 1.0.  It logs to files named with a date stamp, for example events-2012-09.log.   The pattern for the file name is configurable. This logger supports several advanced features:
       * Files are "thread safe": locked so that multiple process can safely log to a common file
       * Files are "fork safe": The file is closed and reopened if a fork is detected
-   $ ==LogDispatch::Screen==: Logs to STDERR, which is typically written to the Apache (Web Server) error log..
-   $ ==LogDispatch::Syslog==: Logs to the local Syslog daemon.  By default logs to the =user= facility.
+   * ==LogDispatch::Screen==: Logs to STDERR, which is typically written to the Apache (Web Server) error log..
+   * ==LogDispatch::Syslog==: Logs to the local Syslog daemon.  By default logs to the =user= facility.
 
-The architecure of LogDispatch is pluggable.  It is expected that additional
+The architecure of !LogDispatch is pluggable.  It is expected that additional
 loggers will be added, such as =Log::Dispatch::DBI=, =Log::Dispatch::Jabber=,
 etc.
 
@@ -43,6 +40,7 @@ sequence that has requested that log level.
 
 ---+++ Fields available for logging
 
+| *Field* | *Description* |
 | timestamp | A Foswiki timestamp in the format of 2013-12-04T03:12:39Z |
 | level | Log level: debug, info, warning |
 | user | Typically the logged in user / WikiName |
@@ -73,28 +71,33 @@ to facilitate more powerful log processing.
 
 The followng common features apply to all Loggers:
 
-   $ ==$Foswiki::cfg{Log}{LogDispatch}{MaskIP}==: Hide IP Addresses logged in the event log.  Default: IP addresses are logged.  Two possible options can be configured: ==x.x.x.x== will cause the =remoteAddr= field to be replaced with =x.x.x.x=.  ==hash== will cause the IP address to be scrambled, so that the original address is not easily identifiable, but multiple transactions from the same IP address will be logged using the same address.  Note: the hash method does not work for IPv6 addresses.
-   $ ==$Foswiki::cfg{Log}{LogDispatch}{EventIterator}==: Specified which logger should be used to retrieve messages when the =eachEventSince= function is used.   This is an _expert_ level setting. See the help in =bin/configure= for more information.
+   * ==$Foswiki::cfg{Log}{LogDispatch}{MaskIP}==: Hide IP Addresses logged in the event log.  Default: IP addresses are logged.  Two possible options can be configured: ==x.x.x.x== will cause the =remoteAddr= field to be replaced with =x.x.x.x=.  ==hash== will cause the IP address to be scrambled, so that the original address is not easily identifiable, but multiple transactions from the same IP address will be logged using the same address.  Note: the hash method does not work for IPv6 addresses.
+   * ==$Foswiki::cfg{Log}{LogDispatch}{EventIterator}==: Specified which logger should be used to retrieve messages when the =eachEventSince= function is used.   This is an _expert_ level setting. See the help in =bin/configure= for more information.
 
 The log layout feature applies to all of the flat record loggers.
 
-   $ ==$Foswiki::cfg{Log}{LogDispatch}{== _&lt;LoggerName&gt;_ ==}{Layout}==; Specifies an array of fields that defines the flat log record layout.  This is an expert level parameter
+   * ==$Foswiki::cfg{Log}{LogDispatch}{== _&lt;LoggerName&gt;_ ==}{Layout}==; Specifies an array of fields that defines the flat log record layout.  This is an expert level parameter
 
 The log file layout default settings are set to match the Plain and Compatibility file loggers as closely as possible.  The setting is an array of fields,  the first entry being the
 delimiter used when joinin the fields.   The left side of the list ==info =>== is the filename.   The right side is the list of fields.  So for a simple example,
+
 <verbatim>
    fileprefix => ['delim', 'field1',   'field2'    ]
    iphits =>     [  '|',   'timestamp'.'remoteAddr']
 </verbatim>
+
 would write out a simple file =iphits.log=, consisting of the timestamp and remote IP address.
+
 <verbatim>
 |2013-12-04T03:12:39Z|127.0.0.1|
 |2013-12-04T03:12:43Z|10.20.1.1|
 </verbatim>
+
 In order to generate logs fully compatible with the old loggers, the following additional values are allowed:
    * Delimiter can include leading/trailing space,  " | ",   Space at beginning/end of record are trimmed.
    * The array can be nested one level deep.  For example, in the below example, the first field combines the timestamp and log level joined with  a space
    * The special field '*' is a wildcard, and logs any extra fields that were omitted from the layout.
+
 <verbatim>
    $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}=  {
         info => [' | ',                   # Delimiter
@@ -175,8 +178,9 @@ of other options supported by !Log4Perl.  The pattern substitution is applied
 _only_ to the characters inside the =%d{...}= block.  The default pattern:
 
 <verbatim>
-$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
+$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = -'%d{yyyy-MM}.log';
 </verbatim>
+
 is appended to the filename prefix, and the substitution is
 applied.  For example:  =error-2012-09.log= or =events-2012-12.log=
 
@@ -230,20 +234,19 @@ This method directs messages to the STDERR output.  STDERR is normally recorded 
 There are two configuration options, specifying the lowest and highest log level to be sent to STDERR.
 
 ---+++ Syslog logger
+
 <div class="foswikiHelp">%X% This logger has additional dependencies:
-   * =Sys::Syslog= is required for Syslog logging
+=Sys::Syslog= is required for Syslog logging
 </div>
 
 The Syslog logger uses the system Syslog facility to send messages to the
 system log. It is disabled by default.  It has 5 configuration options:
+
    * =Facility= - specifies the Syslog Facility set in the log message. Default is =user=.
    * =Identifier= - specifies a string that is prepended to each log message. Default is =Foswiki=.
    * =MinLevel= and
    * =MaxLevel= specifies the range of log levels sent to the Syslog logger.
    * =Logopt= Logger options understood by Syslog.  This is an expert level configuration. See http://perldoc.perl.org/Sys/Syslog.html and =bin/configure= help for details.
-
----++ Installation
-%$INSTALL_INSTRUCTIONS%
 
 ---++ Possible future enhancements
 
@@ -253,18 +256,25 @@ system log. It is disabled by default.  It has 5 configuration options:
    * Add Jabber, DBI,  Windows even type loggers
    * Add filtering support for the !FileRolling logger similar to the File * logger.
 
----++ Info
+---++ Installation Instructions
+%$INSTALL_INSTRUCTIONS%
 
-|  Author: | George Clark |
-|  Copyright &copy;: | 2012, Foswiki:Main.GeorgeClark |
-|  License: | GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]]) |
-|  Dependencies: | %$DEPENDENCIES% |
-|  Version: | %$VERSION% |
-|  Release: | %$RELEASE% |
-|  Change History: | <!-- versions below in reverse order -->&nbsp; |
-|  1.0.1 (15 Oct 2012): | Improved filter implementation,  improved file layout implementaiton |
-|  1.0.0 (XX Mmm 20XX): | Initial version |
-|  Home: | http://foswiki.org/Extensions/%TOPIC% |
-|  Support: | http://foswiki.org/Support/%TOPIC% |
+---++ Dependencies
+%$DEPENDENCIES%
 
+---++ Change History
 
+%TABLE{columnwidths="7em" tablewidth="100%"}%
+|  15 Oct 2012: | 1.01 - Improved filter implementation,  improved file layout implementaiton |
+|  XX XXX 20XX: | 1.00 - Initial version |
+
+%META:FORM{name="PackageForm"}%
+%META:FIELD{name="Author" title="Author" value="George Clark"}%
+%META:FIELD{name="Version" title="Version" value="%25$VERSION%25"}%
+%META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
+%META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
+%META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/%25TOPIC%25"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2012, Foswiki:Main.GeorgeClark"}%
+%META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]])"}%
+%META:FIELD{name="Home" title="Home" value="http://foswiki.org/Extensions/%25TOPIC%25"}%
+%META:FIELD{name="Support" title="Support" value="http://foswiki.org/Support/%25TOPIC%25"}%
