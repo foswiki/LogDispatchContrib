@@ -27,7 +27,7 @@ sub hasNext {
         $ln =~ s/&#255;&#10;/\n/g;    # Reverse newline encoding
 
         #SMELL: This whole process needs to reverse the record as defined
-        #       in LogDispatch::_flattenLog() and the configuration.
+        #       in LogDispatch::flattenLog and the configuration.
         my @line = split( /\s*\|\s*/, $ln );
         shift @line;    # skip the leading empty cell
         next unless scalar(@line) && defined $line[0];
@@ -52,7 +52,7 @@ sub hasNext {
 
 sub next {
     my $this = shift;
-    my ( $fhash, $data ) = parseRecord( $this->{_level}, $this->{_nextEvent} );
+    my ( $fhash, $data ) = $this->parseRecord();
 
     #use Data::Dumper;
     #print STDERR '_nextEvent ' . Data::Dumper::Dumper( \$this->{_nextEvent} ) .
@@ -65,13 +65,15 @@ sub next {
 }
 
 sub parseRecord {
-    my $level = shift;    # Level parsed from record or assumed.
-    my $data  = shift;    # Array ref of raw fields from record.
-    my %fhash;            # returned hash of identified fields
+    my $this = shift;
+
+    my $level = $this->{_level};        # Level parsed from record or assumed.
+    my $data  = $this->{_nextEvent};    # Array ref of raw fields from record.
+    my %fhash;                          # returned hash of identified fields
     $fhash{level} = $level;
 
 #SMELL: This assumes a fixed layout record.  Needs to be updated to reverse the process
-#       performed in Log::Dispatch::_flattenLog()
+#       performed in Log::Dispatch::flattenLog()
     if ( $level eq 'info' ) {
         $fhash{epoch}      = shift @$data;
         $fhash{user}       = shift @$data;
@@ -104,12 +106,16 @@ sub parseRecord {
 }
 
 1;
+
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
 Author: SvenDowideit, GeorgeClark
 
-Copyright (C) 2012 SvenDowideit@fosiki.com,  Foswiki Contributors.
+Copyright (C) 2012 SvenDowideit@fosiki.com
+
+Copyright (C) 2012-2018  Foswiki Contributors.
+
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 

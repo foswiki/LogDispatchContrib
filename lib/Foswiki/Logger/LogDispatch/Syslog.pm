@@ -3,7 +3,9 @@ package Foswiki::Logger::LogDispatch::Syslog;
 
 use strict;
 use warnings;
+
 use Assert;
+use Log::Dispatch;
 
 =begin TML
 
@@ -13,13 +15,12 @@ use Log::Dispatch to allow logging to almost anything.
 
 =cut
 
-use Log::Dispatch;
-
 sub new {
-    my $class   = shift;
-    my $logd    = shift;
-    my $log     = $logd->{dispatch};
-    my $binmode = $logd->{binmode};
+    my $class = shift;
+    my $logd  = shift;
+    my $log   = $logd->{dispatch};
+
+    my $this = bless( { logd => $logd, }, $class );
 
     unless ( defined $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} ) {
         $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} = {
@@ -38,7 +39,7 @@ sub new {
     }
 
     if ( $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Enabled} ) {
-        use Log::Dispatch::Syslog;
+        require Log::Dispatch::Syslog;
         my $ident = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier}
           || 'Foswiki';
         my $facility = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility}
@@ -57,24 +58,42 @@ sub new {
                 facility  => $facility,
                 ident     => $ident,
                 logopt    => $logopt,
-                callbacks => \&_flattenLog,
+                callbacks => sub {
+                    return $this->flattenLog(@_);
+                }
             )
         );
     }
 
-    return bless( {}, $class );
+    return $this;
 }
 
 =begin TML
 
----++ Private method _flattenLog()
-Provides a default layout if configure neglected to include one for the File logger,
-and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+---++ ObjectMethod DESTROY()
+
+Break circular references.
 
 =cut
 
-sub _flattenLog {
+sub DESTROY {
+    my $this = shift;
 
+    undef $this->{logd};
+}
+
+=begin TML
+
+---++ ObjectMethod flattenLog()
+
+Provides a default layout if configure neglected to include one for the File logger,
+and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
+
+=cut
+
+sub flattenLog {
+
+    my $this  = shift;
     my $level = '';
 
 # Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
@@ -92,7 +111,7 @@ sub _flattenLog {
 
     push @_, _Layout_ref => $logLayout_ref;
 
-    goto &Foswiki::Logger::LogDispatch::_flattenLog;
+    $this->{logd}->flattenLog(@_);
 }
 
 1;

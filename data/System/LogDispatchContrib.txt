@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="" date="1539951643" format="1.1"  version="1"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1540466912" format="1.1" version="1"}%
 ---+!! LogDispatchContrib
 
 %FORMFIELD{"Description"}%
@@ -236,7 +236,7 @@ There are two configuration options, specifying the lowest and highest log level
 ---+++ Syslog logger
 
 <div class="foswikiHelp">%X% This logger has additional dependencies:
-=Sys::Syslog= is required for Syslog logging
+   * =Sys::Syslog= is required for Syslog logging
 </div>
 
 The Syslog logger uses the system Syslog facility to send messages to the

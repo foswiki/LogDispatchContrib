@@ -67,7 +67,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = '-%d{yyyy-MM}.log';
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
 # Arrays can be nested no more than one level deep.   Valid fields are:
-# timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
+# timestamp, level, user, action, webTopic, extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
@@ -101,7 +101,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
 # Arrays can be nested no more than one level deep.   Valid fields are:
-# timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
+# timestamp, level, user, action, webTopic, extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
@@ -128,7 +128,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel} = 'emergency';
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
 # Arrays can be nested no more than one level deep.   Valid fields are:
-# timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
+# timestamp, level, user, action, webTopic, extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*',], 'remoteAddr'],
         notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],
@@ -161,7 +161,7 @@ $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel} = 'emergency';
 # Each entry consists of a list,  first the delimiter used to build the records, and then each logger field to be included.
 # if an entry for the log level being written is not found, then the <code>DEFAULT</code> layout will be used.
 # Arrays can be nested no more than one level deep.   Valid fields are:
-# timestamp, level, user, action, webTopic,. extra, agent, remoteAddr, and caller.
+# timestamp, level, user, action, webTopic, extra, agent, remoteAddr, and caller.
 $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} =  {
         info => [' | ', [' ', 'timestamp', 'level'], 'user', 'action', 'webTopic', [' ', 'extra', 'agent', '*', ], 'remoteAddr'],
         notice => [' | ', [' ', 'timestamp', 'level'], 'user', 'remoteAddr', 'setting', 'oldvalue', 'newvalue'],

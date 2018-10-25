@@ -1,9 +1,10 @@
 # See bottom of file for license and copyright information
 package Foswiki::Logger::LogDispatch::File::EventIterator;
+
 use strict;
 use warnings;
-use Assert;
 
+use Assert;
 use Fcntl qw(:flock);
 
 # Internal class for Logfile iterators.
@@ -23,16 +24,8 @@ package Foswiki::Logger::LogDispatch::File;
 
 use strict;
 use warnings;
+
 use Assert;
-
-=begin TML
-
----+ package Foswiki::Logger::LogDispatch::File
-
-use Log::Dispatch to allow logging to almost anything.
-
-=cut
-
 use Fcntl qw(:flock);
 use Log::Dispatch                               ();
 use Log::Dispatch::File                         ();
@@ -41,6 +34,14 @@ use Foswiki::ListIterator                       ();
 use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::FileUtil      ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
+
+=begin TML
+
+---+ package Foswiki::Logger::LogDispatch::File
+
+use Log::Dispatch to allow logging to almost anything.
+
+=cut
 
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
@@ -63,6 +64,14 @@ sub new {
         );
     }
 
+    my $this = bless(
+        {
+            logd    => $logd,
+            fileMap => \%FileRange
+        },
+        $class
+    );
+
     unless ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} ) {
         $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} = {
             info => [
@@ -82,6 +91,7 @@ sub new {
     if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
         my $logdir = $Foswiki::cfg{Log}{Dir};
         Foswiki::Configure::Load::expandValue($logdir);
+
         foreach my $file ( keys %FileRange ) {
             my ( $min_level, $max_level, $filter ) =
               split( /:/, $FileRange{$file}, 3 );
@@ -97,10 +107,12 @@ sub new {
                         max_level => $max_level,
                         filename  => "$logdir/$file.log",
                         mode      => '>>',
-                        binmode   => $logd->binmode(),
+                        binmode   => ":encoding(utf-8)",
                         newline   => 1,
                         filter    => "$filter",
-                        callbacks => \&_flattenLog,
+                        callbacks => sub {
+                            return $this->flattenLog(@_);
+                        }
                     )
                 );
             }
@@ -114,28 +126,32 @@ sub new {
                         max_level => $max_level,
                         filename  => "$logdir/$file.log",
                         mode      => '>>',
-                        binmode   => $logd->binmode(),
+                        binmode   => ":encoding(utf-8)",
                         newline   => 1,
-                        callbacks => \&_flattenLog,
+                        callbacks => sub {
+                            return $this->flattenLog(@_);
+                        }
                     )
                 );
             }
         }
     }
 
-    return bless( { fileMap => \%FileRange }, $class );
+    return $this;
 }
 
 =begin TML
 
----++ Private method _flattenLog()
+---++ ObjectMethod flattenLog()
+
 Provides a default layout if configure neglected to include one for the File logger,
-and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
 
 =cut
 
-sub _flattenLog {
+sub flattenLog {
 
+    my $this  = shift;
     my $level = '';
 
 # Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
@@ -153,35 +169,34 @@ sub _flattenLog {
 
     push @_, _Layout_ref => $logLayout_ref;
 
-    goto &Foswiki::Logger::LogDispatch::_flattenLog;
+    $this->{logd}->flattenLog(@_);
 }
 
 =begin TML
 
----++ ObjectMethod finish()
+---++ ObjectMethod DESTROY()
+
 Break circular references.
 
 =cut
 
-# Note to developers; please undef *all* fields in the object explicitly,
-# whether they are references or not. That way this method is "golden
-# documentation" of the live fields in the object.
-sub finish {
+sub DESTROY {
     my $this = shift;
 
     undef $this->{fileMap};
-
+    undef $this->{logd};
 }
 
 =begin TML
 
 ---++ ObjectMethod eachEventSince()
+
 Determine the file needed to provide the requested event level, and return an iterator for the file.
 
 =cut
 
-sub eachEventSince() {
-    my ( $this, $time, $level ) = @_;
+sub eachEventSince {
+    my ( $this, $time, $level, $lock ) = @_;
 
     my @logs;
     my $log =
@@ -199,8 +214,10 @@ sub eachEventSince() {
           new Foswiki::Logger::LogDispatch::File::EventIterator( $fh, $time,
             $level );
         push( @iterators, $logIt );
-        $logIt->{logLocked} =
-          eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
+        if ($lock) {
+            $logIt->{logLocked} =
+              eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
+        }
     }
     else {
 

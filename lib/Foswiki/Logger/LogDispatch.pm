@@ -5,8 +5,12 @@ use strict;
 use warnings;
 
 use Assert;
-
 use Foswiki::Logger ();
+use Log::Dispatch;
+use Foswiki::Time         ();
+use Foswiki::ListIterator ();
+use Digest::MD5 qw( md5_hex );
+
 our @ISA = ('Foswiki::Logger');
 
 =begin TML
@@ -17,10 +21,6 @@ use Log::Dispatch to allow logging to almost anything.
 
 =cut
 
-use Log::Dispatch;
-use Foswiki::Time         ();
-use Foswiki::ListIterator ();
-
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
@@ -28,14 +28,12 @@ use constant TRACE => 0;
 
 sub new {
     my $class = shift;
-    my $binmode .= ":encoding(utf-8)";
-    my $log = '';
+    my $log   = '';
     my %methods;
 
     return bless(
         {
             dispatch    => $log,
-            binmode     => $binmode,
             methods     => \%methods,
             acceptsHash => 1,
         },
@@ -46,24 +44,23 @@ sub new {
 =begin TML
 
 ---++ ObjectMethod finish()
+
 Break circular references.
 
 =cut
 
-# Note to developers; please undef *all* fields in the object explicitly,
-# whether they are references or not. That way this method is "golden
-# documentation" of the live fields in the object.
 sub finish {
     my $this = shift;
 
     undef $this->{dispatch};
-    undef $this->{binmode};
     undef $this->{methods};
 
 }
 
 sub init {
     my $this = shift;
+
+    return if $this->{dispatch};
 
     $this->{dispatch} = Log::Dispatch->new();
 
@@ -84,18 +81,6 @@ sub init {
             $this->{methods}->{$logtype} = $logMethod->new($this);
         }
     }
-}
-
-=begin TML
-
----++ ObjectMethod binmode()
-Return the binmode for used in reading and writing to logs.
-
-=cut
-
-sub binmode {
-    my $this = shift;
-    return $this->{binmode};
 }
 
 =begin TML
@@ -192,7 +177,6 @@ sub log {
             else {
 
                 # defaults to Hash of IP
-                use Digest::MD5 qw( md5_hex );
                 my $md5hex = md5_hex( $fhash->{remoteAddr} );
                 $fhash->{remoteAddr} =
                     hex( substr( $md5hex, 0, 2 ) ) . '.'
@@ -203,7 +187,7 @@ sub log {
         }
     }
 
-    $this->init() unless $this->{dispatch};
+    $this->init();
 
     my %loghash;    # Parameters for Log::Dispatch calls
     $loghash{level} = $fhash->{level};
@@ -219,27 +203,28 @@ sub log {
 
     # And any discrete logging per handler
     # SMELL:  None of the loggers support this, so it hasn't been tested
-    foreach my $method ( keys %{ $this->{methods} } ) {
-        my $handler = $this->{methods}->{$method};
-        if ( $handler->can('log') ) {
-            print STDERR
-              " LogDispatch.pm thinks $method should LOG \n";    #  if TRACE;
-            $handler->log(%loghash);
-        }
-    }
+    #   foreach my $method ( keys %{ $this->{methods} } ) {
+    #       my $handler = $this->{methods}->{$method};
+    #       if ( $handler->can('log') ) {
+    #           print STDERR
+    #             " LogDispatch.pm thinks $method should LOG \n"  if TRACE;
+    #           $handler->log(%loghash);
+    #       }
+    #   }
 }
 
 =begin TML
 
----++ ObjectMethod _flattenLog( %logHash )
+---++ ObjectMethod flattenLog( %logHash )
 
 This is a callback used by the flat file loggers to flatten the logged
 fields into a single record per a format token.
 
 =cut
 
-sub _flattenLog {
+sub flattenLog {
 
+    my $this    = shift;
     my %logHash = @_;
     my @fields  = keys %{ $logHash{_fields} };
 
@@ -335,7 +320,7 @@ sub eachEventSince {
     my $time  = shift;
     my $level = shift;
 
-    $this->init() unless $this->{dispatch};
+    $this->init();
 
     my $cfgHandlers = $Foswiki::cfg{Log}{LogDispatch}{EventIterator}{$level}
       || 'FileRolling,File';

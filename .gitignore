@@ -1,0 +1,9 @@
+*,v
+*.swp
+/LogDispatchContrib.md5
+/LogDispatchContrib.sha1
+/LogDispatchContrib.tgz
+/LogDispatchContrib.txt
+/LogDispatchContrib.zip
+/LogDispatchContrib_installer
+/LogDispatchContrib_installer.pl

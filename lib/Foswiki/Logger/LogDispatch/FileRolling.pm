@@ -1,9 +1,10 @@
 # See bottom of file for license and copyright information
 package Foswiki::Logger::LogDispatch::FileRolling::EventIterator;
+
 use strict;
 use warnings;
-use Assert;
 
+use Assert;
 use Fcntl qw(:flock);
 
 # Internal class for Logfile iterators.
@@ -23,16 +24,8 @@ package Foswiki::Logger::LogDispatch::FileRolling;
 
 use strict;
 use warnings;
+
 use Assert;
-
-=begin TML
-
----+ package Foswiki::Logger::LogDispatch::FileRolling
-
-use Log::Dispatch to allow logging to almost anything.
-
-=cut
-
 use Fcntl qw(:flock);
 use Log::Dispatch ();
 use Foswiki       ();
@@ -43,6 +36,14 @@ use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::FileUtil      ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
 
+=begin TML
+
+---+ package Foswiki::Logger::LogDispatch::FileRolling
+
+use Log::Dispatch to allow logging to almost anything.
+
+=cut
+
 # Local symbol used so we can override it during unit testing
 sub _time { return time() }
 
@@ -51,6 +52,14 @@ use constant TRACE => 0;
 sub new {
     my $class = shift;
     my $logd  = shift;
+
+    my $this = bless(
+        {
+            fileMap => \%FileRange,
+            logd    => $logd
+        },
+        $class
+    );
 
     my %FileRange;
     if ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} ) {
@@ -116,28 +125,46 @@ sub new {
                         max_level => $max_level,
                         filename  => "$logdir/$file$pattern",
                         mode      => '>>',
-                        binmode   => $logd->binmode(),
+                        binmode   => ":encoding(utf-8)",
                         newline   => 1,
-                        callbacks => \&_flattenLog,
+                        callbacks => sub {
+                            return $this->flattenLog(@_);
+                        }
                     )
                 );
             }
         }
     }
 
-    return bless( { fileMap => \%FileRange }, $class );
+    return $this;
 }
 
 =begin TML
 
----++ Private method _flattenLog()
-Provides a default layout if configure neglected to include one for the File logger,
-and then replaces the call using goto &Foswiki::Logger::LogDispatch::_flattenLog() utility routine.
+---++ ObjectMethod DESTROY()
+
+Break circular references.
 
 =cut
 
-sub _flattenLog {
+sub DESTROY {
+    my $this = shift;
 
+    undef $this->{fileMap};
+    undef $this->{logd};
+}
+
+=begin TML
+
+---++ ObjectMethod flattenLog()
+
+Provides a default layout if configure neglected to include one for the File logger,
+and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
+
+=cut
+
+sub flattenLog {
+    my $this  = shift;
     my $level = '';
 
 # Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
@@ -155,28 +182,19 @@ sub _flattenLog {
 
     push @_, _Layout_ref => $logLayout_ref;
 
-    goto &Foswiki::Logger::LogDispatch::_flattenLog;
+    $this->{logd}->flattenLog(@_);
 }
 
 =begin TML
 
----++ ObjectMethod finish()
-Break circular references.
+---++ ObjectMethod eachEventSince()
+
+Determine the file needed to provide the requested event level, and return an iterator for the file.
 
 =cut
 
-# Note to developers; please undef *all* fields in the object explicitly,
-# whether they are references or not. That way this method is "golden
-# documentation" of the live fields in the object.
-sub finish {
-    my $this = shift;
-
-    undef $this->{fileMap};
-
-}
-
 sub eachEventSince() {
-    my ( $this, $time, $level ) = @_;
+    my ( $this, $time, $level, $lock ) = @_;
 
     my @logs;
     my $log =
@@ -262,8 +280,10 @@ sub eachEventSince() {
               new Foswiki::Logger::LogDispatch::FileRolling::EventIterator( $fh,
                 $time, $level );
             push( @iterators, $logIt );
-            $logIt->{logLocked} =
-              eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
+            if ($lock) {
+                $logIt->{logLocked} =
+                  eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
+            }
         }
         else {
 
