@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="" date="1541096700" format="1.1" version="1"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1541101108" format="1.1" version="1"}%
 ---+!! LogDispatchContrib
 
 %FORMFIELD{"Description"}%
@@ -158,9 +158,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
 
 ---+++ =LogDispatch::FileRotate= 
 
-<div class="foswikiHelp">%X% This logger has additional dependencies:
-   * =Log::Dispatch::FileRotate= must be installed using CPAN
-</div>
+<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::FileRotate </div>
 
 When enabled, the default configuration:
    * debug messages (Level 0) are writen to =debug.log=, =debug.log.1=, =debug.log.2=, ... , =debug.log.&lt;max>=
@@ -187,9 +185,7 @@ There are two configuration options, specifying the lowest and highest log level
 
 ---+++ Syslog logger
 
-<div class="foswikiHelp">%X% This logger has additional dependencies:
-   * =Sys::Syslog= is required for Syslog logging
-</div>
+<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::Syslog </div>
 
 The Syslog logger uses the system Syslog facility to send messages to the
 system log. It is disabled by default.  It has 5 configuration options:

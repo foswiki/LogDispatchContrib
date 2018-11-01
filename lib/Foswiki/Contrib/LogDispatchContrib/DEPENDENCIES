@@ -1,5 +1,5 @@
 Log::Dispatch,>=0,cpan,Required
-Log::Dispatch::File,>=0,cpan,Required
+Log::Dispatch::File,>=0,cpan,Optional
 Log::Dispatch::FileRotate,>=0,cpan,Optional
 Log::Dispatch::Screen,>=0,cpan,Optional
-Sys::Syslog,>=0.16,cpan,Optional
+Log::Dispatch::Syslog,>=0.16,cpan,Optional
