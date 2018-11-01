@@ -54,7 +54,6 @@ sub finish {
 
     undef $this->{dispatch};
     undef $this->{methods};
-
 }
 
 sub init {
@@ -64,21 +63,22 @@ sub init {
 
     $this->{dispatch} = Log::Dispatch->new();
 
-    foreach my $logtype ( keys %{ $Foswiki::cfg{Log}{LogDispatch} } ) {
+    foreach my $type ( keys %{ $Foswiki::cfg{Log}{LogDispatch} } ) {
 
         # These are not logging methods
-        next if $logtype eq 'MaskIP';
-        next if $logtype eq 'EventIterator';
-        next unless ( $Foswiki::cfg{Log}{LogDispatch}{$logtype}{Enabled} );
+        next if $type eq 'MaskIP';
+        next if $type eq 'EventIterator';
+        next unless $Foswiki::cfg{Log}{LogDispatch}{$type}{Enabled};
 
-        my $logMethod = 'Foswiki::Logger::LogDispatch::' . $logtype;
+        my $logMethod = 'Foswiki::Logger::LogDispatch::' . $type;
         eval "require $logMethod";
+
         if ($@) {
             print STDERR
-">>>> Failed to load Foswiki::Logger::LogDispatch::$logtype: $@ \n";
+              ">>>> Failed to load Foswiki::Logger::LogDispatch::$type: $@ \n";
         }
         else {
-            $this->{methods}->{$logtype} = $logMethod->new($this);
+            $this->{methods}->{$type} = $logMethod->new($this);
         }
     }
 }
@@ -267,6 +267,7 @@ sub flattenLog {
     my ($delim) = @$logLayout_ref[0] =~ m/(\S+)/;    # Field separator
     my $ldelim = @$logLayout_ref[0];                 # Leading delimiter
     my $tdelim = @$logLayout_ref[0];                 # Trailing delimiter
+
     $ldelim =~ s/^\s+//g;
     $tdelim =~ s/\s+$//g;
 
@@ -323,7 +324,7 @@ sub eachEventSince {
     $this->init();
 
     my $cfgHandlers = $Foswiki::cfg{Log}{LogDispatch}{EventIterator}{$level}
-      || 'FileRolling,File';
+      || 'FileRotate,File';
 
     my @eventHandlers = split( ',', $cfgHandlers );
     my $handler;

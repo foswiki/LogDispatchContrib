@@ -4,114 +4,48 @@ package Foswiki::Logger::LogDispatch::Syslog;
 use strict;
 use warnings;
 
-use Assert;
-use Log::Dispatch;
+use Log::Dispatch                      ();
+use Foswiki::Logger::LogDispatch::Base ();
+
+our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
 =begin TML
 
----+ package Foswiki::Logger::LogDispatch::File
+---++ ObjectMethod init()
 
-use Log::Dispatch to allow logging to almost anything.
-
-=cut
-
-sub new {
-    my $class = shift;
-    my $logd  = shift;
-    my $log   = $logd->{dispatch};
-
-    my $this = bless( { logd => $logd, }, $class );
-
-    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} ) {
-        $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout} = {
-            info => [
-                ' | ', [ ' ', 'timestamp', 'level' ],
-                'user', 'action',
-                'webTopic', [ ' ', 'extra', 'agent', ],
-                'remoteAddr'
-            ],
-            DEFAULT => [
-                ' | ',
-                [ ' ', 'timestamp', 'level' ],
-                [ ' ', 'caller',    'extra' ]
-            ],
-        };
-    }
-
-    if ( $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Enabled} ) {
-        require Log::Dispatch::Syslog;
-        my $ident = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier}
-          || 'Foswiki';
-        my $facility = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility}
-          || 'user';
-        my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel}
-          || 'warn';
-        my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel}
-          || 'emergency';
-        my $logopt = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Logopt}
-          || 'ndelay,nofatal,pid';
-        $log->add(
-            Log::Dispatch::Syslog->new(
-                name      => 'syslog',
-                min_level => $min_level,
-                max_level => $max_level,
-                facility  => $facility,
-                ident     => $ident,
-                logopt    => $logopt,
-                callbacks => sub {
-                    return $this->flattenLog(@_);
-                }
-            )
-        );
-    }
-
-    return $this;
-}
-
-=begin TML
-
----++ ObjectMethod DESTROY()
-
-Break circular references.
+called when this logger is enabled
 
 =cut
 
-sub DESTROY {
+sub init {
     my $this = shift;
 
-    undef $this->{logd};
-}
+    require Log::Dispatch::Syslog;
 
-=begin TML
+    my $ident = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Identifier}
+      || 'Foswiki';
+    my $facility = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Facility}
+      || 'user';
+    my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MinLevel}
+      || 'warn';
+    my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{MaxLevel}
+      || 'emergency';
+    my $logopt = $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Logopt}
+      || 'ndelay,nofatal,pid';
 
----++ ObjectMethod flattenLog()
-
-Provides a default layout if configure neglected to include one for the File logger,
-and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
-
-=cut
-
-sub flattenLog {
-
-    my $this  = shift;
-    my $level = '';
-
-# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
-    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
-        if ( $_[$e] eq 'level' ) {
-            $level = $_[ $e + 1 ];
-            last;
-        }
-    }
-
-    my $logLayout_ref =
-      ( defined $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout}{$level} )
-      ? $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout}{$level}
-      : $Foswiki::cfg{Log}{LogDispatch}{Syslog}{Layout}{DEFAULT};
-
-    push @_, _Layout_ref => $logLayout_ref;
-
-    $this->{logd}->flattenLog(@_);
+    $this->{logd}->{dispatch}->add(
+        Log::Dispatch::Syslog->new(
+            name      => 'syslog',
+            min_level => $min_level,
+            max_level => $max_level,
+            facility  => $facility,
+            ident     => $ident,
+            logopt    => $logopt,
+            callbacks => sub {
+                return $this->flattenLog(@_);
+            }
+        )
+    );
 }
 
 1;

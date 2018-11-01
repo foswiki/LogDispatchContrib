@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="" date="1540466912" format="1.1" version="1"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1541096700" format="1.1" version="1"}%
 ---+!! LogDispatchContrib
 
 %FORMFIELD{"Description"}%
@@ -15,9 +15,7 @@ methods to support alternate destinations.
 The following log methods are shipped by default:
 
    * ==LogDispatch::File==: A simple file based logger.  It does not do any file rotation or date stamping of the files.
-   * ==LogDispatch::FileRolling==: A file based logger similar to the "Compatibility" logger used by default on Foswiki 1.0.  It logs to files named with a date stamp, for example events-2012-09.log.   The pattern for the file name is configurable. This logger supports several advanced features:
-      * Files are "thread safe": locked so that multiple process can safely log to a common file
-      * Files are "fork safe": The file is closed and reopened if a fork is detected
+   * ==LogDispatch::FileRotate==: A file based logger that rotates files on recurring dates while keeping only a certain number of files.
    * ==LogDispatch::Screen==: Logs to STDERR, which is typically written to the Apache (Web Server) error log..
    * ==LogDispatch::Syslog==: Logs to the local Syslog daemon.  By default logs to the =user= facility.
 
@@ -158,70 +156,24 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     };
 </verbatim>
 
----+++ =LogDispatch::FileRolling= "Stamped" file logger
+---+++ =LogDispatch::FileRotate= 
 
 <div class="foswikiHelp">%X% This logger has additional dependencies:
-   * =Log::Dispatch::File::Rolling= must be installed using CPAN
-   * =Log::Log4perl::DateFormat= required for the filename patern parsing
+   * =Log::Dispatch::FileRotate= must be installed using CPAN
 </div>
-
-*This is the recommended logger for file logging, especially on busy systems*
 
 When enabled, the default configuration:
-   * debug messages (Level 0) are writen to =debug-yyyy-mm.log=
-   * info messages (Level 1) are written to =events-yyyy-mm.log=
-   * notice-emergency (Levels 2-7) are written to =error-yyyy-mm.log=
+   * debug messages (Level 0) are writen to =debug.log=, =debug.log.1=, =debug.log.2=, ... , =debug.log.&lt;max>=
+   * info messages (Level 1) are written to =events.log=, =event.log.1=, =event.log.2=, ..., =event.log.&lt;max>=
+   * notice-emergency (Levels 2-7) are written to =error.log=, =error.log.1=, =error.log.2=, ... , =error.log.&lt;max>=
 
-The !FileRolling logger is very similar to the simple File logger, however it
-generates filenames using a pattern substitution for Year, Month, and a subset
-of other options supported by !Log4Perl.  The pattern substitution is applied
-_only_ to the characters inside the =%d{...}= block.  The default pattern:
+The !FileRotate logger is very similar to the simple File logger while rotating files on recurring dates and only
+keeping a certain number of files. For instance to keep monthly logs of the recent year use below configuration:
 
 <verbatim>
-$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern} = -'%d{yyyy-MM}.log';
-</verbatim>
-
-is appended to the filename prefix, and the substitution is
-applied.  For example:  =error-2012-09.log= or =events-2012-12.log=
-
-<div class="foswikiHelp">%T% In order to "continue" an existing !PlainFile log using !LogDispatchContrib:
-   * Quiesce your Foswiki system to avoid writing new log messages
-   * Move the old log files to the name that LogDispatch will use:
-      * =events.log= to =events.yyyymm=
-      * =debug.log= to =debug.yyyymm=
-      * =error.log= to =error.yyyymm=
-   * Using bin/configure, change the Pattern to =%d{yyyyMM}= and verify that !FileRolling is enabled.
-   * Restart / re-enable your server
-</div>
-
-The following character patterns are supported, however many will not make
-sense as part of a filename.
-
-| *Character* | *Definition* | *Type* | *eachEvent* | *Example* |
-|    G     | era designator      | (Text)         | | AD |
-|    e     | epoch seconds       | (Number)       |%X%| 1315011604 |
-|    y     | year                | (Number)       | | 1996 |
-|    M     | month in year       | (Number)       | | 07 |
-|    M     | month in year       | (Text)         |%X%| July (Text if pattern longer than 2 characters) |
-|    d     | day in month        | (Number)       | | 10 |
-|    h     | hour in am/pm (1~12)| (Number)       |%X%| 12 |
-|    H     | hour in day (0~23)  | (Number)       |%X%| 0 |
-|    m     | minute in hour      | (Number)       |%X%| 30 |
-|    s     | second in minute    | (Number)       |%X%| 55 |
-|    S     | millisecond         | (Number)       |%X%| 978 |
-|    E     | day in week         | (Text)         |%X%| Tuesday |
-|    D     | day in year         | (Number)       | | 189 |
-|    a     | am/pm marker        | (Text)         |%X%| PM |
-|    Z     | RFC 822 time zone   | (Text)         |%X%| -0800 |
-|    $     | process id          | (Number)       |%X%| 8232 |
-
-   * %X% - not supported for =eachEventSince= log processing.
-   * ==$== Process ID can be used to isolate logs per process to avoid any contention on extremely busy system, or when the system cannot support file locking.
-
-As with the File logger, the log levels 0-7 are mapped to file name prefixes using an expert level parameter.  However unlike the File logger, __log filtering is not supported__
-
-<verbatim>
-$Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} = {
+$Foswiki::cfg{Log}{LogDispatch}{FileRotate}{Recurrence} = 'monthly';
+$Foswiki::cfg{Log}{LogDispatch}{FileRotate}{MaxFiles} = 12;
+$Foswiki::cfg{Log}{LogDispatch}{FileRotate}{FileLevels} = {
     debug  => 'debug:debug',
     events => 'info:info',
     error  => 'notice:emergency',
@@ -254,7 +206,6 @@ system log. It is disabled by default.  It has 5 configuration options:
    * Add DBI logger
    * IPv6 support
    * Add Jabber, DBI,  Windows even type loggers
-   * Add filtering support for the !FileRolling logger similar to the File * logger.
 
 ---++ Installation Instructions
 %$INSTALL_INSTRUCTIONS%
@@ -265,16 +216,16 @@ system log. It is disabled by default.  It has 5 configuration options:
 ---++ Change History
 
 %TABLE{columnwidths="7em" tablewidth="100%"}%
-|  15 Oct 2012: | 1.01 - Improved filter implementation,  improved file layout implementaiton |
-|  XX XXX 20XX: | 1.00 - Initial version |
+|  01 Nov 2018: | 2.00 - rewrite and code reorg; replaced !FileRolling with !FileRotate |
+|  15 Oct 2012: | 1.01 - improved filter implementation,  improved file layout implementaiton |
 
 %META:FORM{name="PackageForm"}%
-%META:FIELD{name="Author" title="Author" value="George Clark"}%
+%META:FIELD{name="Author" title="Author" value="George Clark, Sven Dowideit, Michael Daum"}%
 %META:FIELD{name="Version" title="Version" value="%25$VERSION%25"}%
 %META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
 %META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
 %META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/%25TOPIC%25"}%
-%META:FIELD{name="Copyright" title="Copyright" value="2012, Foswiki:Main.GeorgeClark"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2012-2018, Foswiki Contributors"}%
 %META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]])"}%
 %META:FIELD{name="Home" title="Home" value="http://foswiki.org/Extensions/%25TOPIC%25"}%
 %META:FIELD{name="Support" title="Support" value="http://foswiki.org/Support/%25TOPIC%25"}%

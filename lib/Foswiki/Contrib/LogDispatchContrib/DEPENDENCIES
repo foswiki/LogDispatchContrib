@@ -1,5 +1,5 @@
 Log::Dispatch,>=0,cpan,Required
-Log::Dispatch::File::Rolling,>=0,cpan,Required
+Log::Dispatch::File,>=0,cpan,Required
+Log::Dispatch::FileRotate,>=0,cpan,Optional
 Log::Dispatch::Screen,>=0,cpan,Optional
 Sys::Syslog,>=0.16,cpan,Optional
-Log::Log4perl::DateFormat,>=0,cpan,Optional

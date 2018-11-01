@@ -4,111 +4,41 @@ package Foswiki::Logger::LogDispatch::Screen;
 use strict;
 use warnings;
 
-use Assert;
-use Log::Dispatch;
-use Foswiki::Time qw(-nofoswiki);
-use Foswiki::ListIterator                       ();
-use Foswiki::Configure::Load                    ();
-use Foswiki::Logger::LogDispatch::EventIterator ();
+use Log::Dispatch                      ();
+use Foswiki::Logger::LogDispatch::Base ();
+
+our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
 =begin TML
 
----+ package Foswiki::Logger::LogDispatch::Screen
+---++ ObjectMethod init()
 
-use Log::Dispatch to allow logging to almost anything.
-
-=cut
-
-sub new {
-    my $class = shift;
-    my $logd  = shift;
-    my $log   = $logd->{dispatch};
-
-    my $this = bless( { logd => $logd }, $class );
-
-    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} ) {
-        $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout} = {
-            info => [
-                ' | ', [ ' ', 'timestamp', 'level' ],
-                'user', 'action',
-                'webTopic', [ ' ', 'extra', 'agent', ],
-                'remoteAddr'
-            ],
-            DEFAULT => [
-                ' | ',
-                [ ' ', 'timestamp', 'level' ],
-                [ ' ', 'caller',    'extra' ]
-            ],
-        };
-    }
-
-    if ( $Foswiki::cfg{Log}{LogDispatch}{Screen}{Enabled} ) {
-        require Log::Dispatch::Screen;
-        my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel}
-          || 'error';
-        my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel}
-          || 'emergency';
-        $log->add(
-            Log::Dispatch::Screen->new(
-                name      => 'screen',
-                min_level => $min_level,
-                max_level => $max_level,
-                stderr    => 1,
-                newline   => 1,
-                callbacks => sub {
-                    return $this->flattenLog(@_);
-                }
-            )
-        );
-    }
-
-    return bless( {}, $class );
-}
-
-=begin TML
-
----++ ObjectMethod DESTROY()
-
-Break circular references.
+called when this logger is enabled
 
 =cut
 
-sub DESTROY {
+sub init {
     my $this = shift;
 
-    undef $this->{logd};
-}
+    require Log::Dispatch::Screen;
 
-=begin TML
+    my $min_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MinLevel}
+      || 'error';
+    my $max_level = $Foswiki::cfg{Log}{LogDispatch}{Screen}{MaxLevel}
+      || 'emergency';
 
----++ ObjectMethod flattenLog()
-
-Provides a default layout if configure neglected to include one for the File logger,
-and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
-
-=cut
-
-sub flattenLog {
-
-    my $this  = shift;
-    my $level = '';
-
-# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
-    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
-        if ( $_[$e] eq 'level' ) {
-            $level = $_[ $e + 1 ];
-            last;
-        }
-    }
-
-    my $logLayout_ref =
-      ( defined $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{$level} )
-      ? $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{$level}
-      : $Foswiki::cfg{Log}{LogDispatch}{Screen}{Layout}{DEFAULT};
-
-    push @_, _Layout_ref => $logLayout_ref;
-
-    $this->{logd}->flattenLog(@_);
+    $logd->{dispatch}->add(
+        Log::Dispatch::Screen->new(
+            name      => 'screen',
+            min_level => $min_level,
+            max_level => $max_level,
+            stderr    => 1,
+            newline   => 1,
+            callbacks => sub {
+                return $this->flattenLog(@_);
+            }
+        )
+    );
 }
 
 1;
@@ -117,7 +47,10 @@ Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
 Author: SvenDowideit, GeorgeClark
 
-Copyright (C) 2012 SvenDowideit@fosiki.com,  Foswiki Contributors.
+Copyright (C) 2012 SvenDowideit@fosiki.com
+
+Copyright (C) 2012-2018  Foswiki Contributors.
+
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 

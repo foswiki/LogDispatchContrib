@@ -1,190 +1,92 @@
 # See bottom of file for license and copyright information
-package Foswiki::Logger::LogDispatch::File::EventIterator;
-
-use strict;
-use warnings;
-
-use Assert;
-use Fcntl qw(:flock);
-
-# Internal class for Logfile iterators.
-# So we don't break encapsulation of file handles.  Open / Close in same file.
-our @ISA = qw/Foswiki::Logger::LogDispatch::EventIterator/;
-
-# # Object destruction
-# # Release locks and file
-sub DESTROY {
-    my $this = shift;
-    flock( $this->{handle}, LOCK_UN )
-      if ( defined $this->{logLocked} );
-    close( delete $this->{handle} ) if ( defined $this->{handle} );
-}
-
 package Foswiki::Logger::LogDispatch::File;
 
 use strict;
 use warnings;
 
-use Assert;
+use constant TRACE => 0;
+
 use Fcntl qw(:flock);
-use Log::Dispatch                               ();
-use Log::Dispatch::File                         ();
-use Foswiki::AggregateIterator                  ();
-use Foswiki::ListIterator                       ();
-use Foswiki::Configure::Load                    ();
-use Foswiki::Logger::LogDispatch::FileUtil      ();
-use Foswiki::Logger::LogDispatch::EventIterator ();
+use Log::Dispatch              ();
+use Foswiki::AggregateIterator ();
+use Foswiki::ListIterator      ();
+
+use Foswiki::Logger::LogDispatch::Base ();
+
+our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
 =begin TML
 
----+ package Foswiki::Logger::LogDispatch::File
+---++ ObjectMethod init()
 
-use Log::Dispatch to allow logging to almost anything.
+called when this logger is enabled
 
 =cut
 
-# Local symbol used so we can override it during unit testing
-sub _time { return time() }
+sub init {
+    my $this = shift;
 
-use constant TRACE => 0;
-
-sub new {
-    my $class = shift;
-    my $logd  = shift;
-
-    my %FileRange;
+    my %fileLevels;
     if ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} ) {
-        %FileRange = %{ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} };
+        %fileLevels = %{ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} };
     }
     else {
-        %FileRange = (
+        %fileLevels = (
             debug  => 'debug:debug',
             events => 'info:info',
             error  => 'notice:emergency',
         );
     }
 
-    my $this = bless(
-        {
-            logd    => $logd,
-            fileMap => \%FileRange
-        },
-        $class
-    );
+    $this->{fileLevels} = \%fileLevels;
 
-    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} ) {
-        $Foswiki::cfg{Log}{LogDispatch}{File}{Layout} = {
-            info => [
-                ' | ', [ ' ', 'timestamp', 'level' ],
-                'user', 'action',
-                'webTopic', [ ' ', 'extra', 'agent', '*' ],
-                'remoteAddr'
-            ],
-            DEFAULT => [
-                ' | ',
-                [ ' ', 'timestamp', 'level' ],
-                [ ' ', 'caller',    'extra' ]
-            ],
-        };
-    }
+    foreach my $file ( keys %fileLevels ) {
+        my ( $min_level, $max_level, $filter ) =
+          split( /:/, $fileLevels{$file}, 3 );
 
-    if ( $Foswiki::cfg{Log}{LogDispatch}{File}{Enabled} ) {
-        my $logdir = $Foswiki::cfg{Log}{Dir};
-        Foswiki::Configure::Load::expandValue($logdir);
-
-        foreach my $file ( keys %FileRange ) {
-            my ( $min_level, $max_level, $filter ) =
-              split( /:/, $FileRange{$file}, 3 );
-            if ($filter) {
-                require Foswiki::Logger::LogDispatch::FileFiltered;
-                print STDERR
-"File: Adding Filtered $file as $min_level-$max_level, $filter\n"
-                  if TRACE;
-                $logd->{dispatch}->add(
-                    Foswiki::Logger::LogDispatch::FileFiltered->new(
-                        name      => 'file-' . $file,
-                        min_level => $min_level,
-                        max_level => $max_level,
-                        filename  => "$logdir/$file.log",
-                        mode      => '>>',
-                        binmode   => ":encoding(utf-8)",
-                        newline   => 1,
-                        filter    => "$filter",
-                        callbacks => sub {
-                            return $this->flattenLog(@_);
-                        }
-                    )
-                );
-            }
-            else {
-                print STDERR "File: Adding $file as $min_level-$max_level\n"
-                  if TRACE;
-                $logd->{dispatch}->add(
-                    Log::Dispatch::File->new(
-                        name      => 'file-' . $file,
-                        min_level => $min_level,
-                        max_level => $max_level,
-                        filename  => "$logdir/$file.log",
-                        mode      => '>>',
-                        binmode   => ":encoding(utf-8)",
-                        newline   => 1,
-                        callbacks => sub {
-                            return $this->flattenLog(@_);
-                        }
-                    )
-                );
-            }
+        if ($filter) {
+            require Foswiki::Logger::LogDispatch::FileFiltered;
+            print STDERR
+              "File: Adding Filtered $file as $min_level-$max_level, $filter\n"
+              if TRACE;
+            $this->{logd}->{dispatch}->add(
+                Foswiki::Logger::LogDispatch::FileFiltered->new(
+                    name      => 'file-' . $file,
+                    min_level => $min_level,
+                    max_level => $max_level,
+                    filename  => $this->logDir . "$file.log",
+                    mode      => '>>',
+                    binmode   => ":encoding(utf-8)",
+                    newline   => 1,
+                    filter    => $filter,
+                    callbacks => sub {
+                        return $this->flattenLog(@_);
+                    }
+                )
+            );
+        }
+        else {
+            require Log::Dispatch::File;
+            print STDERR "File: Adding $file as $min_level-$max_level\n"
+              if TRACE;
+            $this->{logd}->{dispatch}->add(
+                Log::Dispatch::File->new(
+                    name      => 'file-' . $file,
+                    min_level => $min_level,
+                    max_level => $max_level,
+                    filename  => $this->logDir . "/$file.log",
+                    mode      => '>>',
+                    binmode   => ":encoding(utf-8)",
+                    newline   => 1,
+                    callbacks => sub {
+                        return $this->flattenLog(@_);
+                    }
+                )
+            );
         }
     }
 
     return $this;
-}
-
-=begin TML
-
----++ ObjectMethod flattenLog()
-
-Provides a default layout if configure neglected to include one for the File logger,
-and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
-
-=cut
-
-sub flattenLog {
-
-    my $this  = shift;
-    my $level = '';
-
-# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
-    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
-        if ( $_[$e] eq 'level' ) {
-            $level = $_[ $e + 1 ];
-            last;
-        }
-    }
-
-    my $logLayout_ref =
-      ( defined $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{$level} )
-      ? $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{$level}
-      : $Foswiki::cfg{Log}{LogDispatch}{File}{Layout}{DEFAULT};
-
-    push @_, _Layout_ref => $logLayout_ref;
-
-    $this->{logd}->flattenLog(@_);
-}
-
-=begin TML
-
----++ ObjectMethod DESTROY()
-
-Break circular references.
-
-=cut
-
-sub DESTROY {
-    my $this = shift;
-
-    undef $this->{fileMap};
-    undef $this->{logd};
 }
 
 =begin TML
@@ -199,8 +101,7 @@ sub eachEventSince {
     my ( $this, $time, $level, $lock ) = @_;
 
     my @logs;
-    my $log =
-      Foswiki::Logger::LogDispatch::FileUtil::getLogForLevel( $this, $level );
+    my $log = $this->getLogForLevel($level);
     my @iterators;
 
     unless ( -r $log ) {
@@ -230,56 +131,6 @@ sub eachEventSince {
     return $iterators[0] if scalar(@iterators) == 1;
     return new Foswiki::AggregateIterator( \@iterators );
 
-}
-
-=begin TML
-
----++ ObjectMethod getLogForLevel()
-Called with a requested level, it processes reverses the file map to return the log name
-prefix that should contain the requested messages.
-
-Filtered files are not included.
-
-=cut
-
-# Get the name of the log for a given reporting level
-sub getLogForLevel {
-    my $logger = shift;
-    my $level  = shift;
-    my $file;
-
-    my %level2num = (
-        debug     => 0,
-        info      => 1,
-        notice    => 2,
-        warning   => 3,
-        error     => 4,
-        critical  => 5,
-        alert     => 6,
-        emergency => 7,
-    );
-    foreach ( keys %{ $logger->{fileMap} } ) {
-        my ( $min_level, $max_level, $filter ) =
-          split( /:/, $logger->{fileMap}->{$_} );
-        if (   $level2num{$min_level} <= $level2num{$level}
-            && $level2num{$max_level} >= $level2num{$level} )
-        {
-            $file = $_;
-            last;
-        }
-    }
-
-    print STDERR "Decoded level $level to file $file\n" if TRACE;
-
-    ASSERT( defined $file && $file ) if DEBUG;
-    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $file . '.log';
-
-    # SMELL: Expand should not be needed, except if bin/configure tries
-    # to log to locations relative to $Foswiki::cfg{WorkingDir}, DataDir, etc.
-    # Windows seemed to be the most difficult to fix - this was the only thing
-    # that I could find that worked all the time.
-    Foswiki::Configure::Load::expandValue($log);
-    return $log;
 }
 
 1;

@@ -1,25 +1,4 @@
 # See bottom of file for license and copyright information
-package Foswiki::Logger::LogDispatch::FileRolling::EventIterator;
-
-use strict;
-use warnings;
-
-use Assert;
-use Fcntl qw(:flock);
-
-# Internal class for Logfile iterators.
-# So we don't break encapsulation of file handles.  Open / Close in same file.
-our @ISA = qw/Foswiki::Logger::LogDispatch::EventIterator/;
-
-# # Object destruction
-# # Release locks and file
-sub DESTROY {
-    my $this = shift;
-    flock( $this->{handle}, LOCK_UN )
-      if ( defined $this->{logLocked} );
-    close( delete $this->{handle} ) if ( defined $this->{handle} );
-}
-
 package Foswiki::Logger::LogDispatch::FileRolling;
 
 use strict;
@@ -32,9 +11,12 @@ use Foswiki       ();
 use Foswiki::Time qw(-nofoswiki);
 use Foswiki::ListIterator                       ();
 use Foswiki::AggregateIterator                  ();
-use Foswiki::Configure::Load                    ();
 use Foswiki::Logger::LogDispatch::FileUtil      ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
+
+use Foswiki::Logger::LogDispatch::Base ();
+
+our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
 =begin TML
 
@@ -49,140 +31,71 @@ sub _time { return time() }
 
 use constant TRACE => 0;
 
-sub new {
-    my $class = shift;
-    my $logd  = shift;
+=begin TML
 
-    my $this = bless(
-        {
-            fileMap => \%FileRange,
-            logd    => $logd
-        },
-        $class
-    );
+---++ ObjectMethod init()
 
-    my %FileRange;
+called when this logger is enabled
+
+=cut
+
+sub init {
+    my $this = shift;
+
+    my %fileLevels;
     if ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} ) {
-        %FileRange =
+        %fileLevels =
           %{ $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{FileLevels} };
     }
     else {
-        %FileRange = (
+        %fileLevels = (
             debug  => 'debug:debug',
             events => 'info:info',
             error  => 'notice:emergency',
         );
     }
 
-    unless ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} ) {
-        $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout} = {
-            info => [
-                ' | ', [ ' ', 'timestamp', 'level' ],
-                'user', 'action',
-                'webTopic', [ ' ', 'extra', 'agent', '*' ],
-                'remoteAddr'
-            ],
-            DEFAULT => [
-                ' | ',
-                [ ' ', 'timestamp', 'level' ],
-                [ ' ', 'caller',    'extra' ]
-            ],
-        };
-    }
+    $this->{fileLevels} = \%fileLevels;
 
     eval 'require Log::Log4perl::DateFormat';
     if ($@) {
         print STDERR
 "ERROR: Log::Log4Perl missing - Log::Dispatch::File::Rolling DISABLED\n$@";
         $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = 0;
-        return 0;
-    }
-    else {
-        eval 'use Log::Dispatch::File::Rolling';
-        if ($@) {
-            print STDERR
-              "ERROR: Log::Dispatch::File::Rolling missing - DISABLED\n$@";
-            $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = 0;
-            return 0;
-        }
-        else {
-            my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
-              || '-%d{yyyy-MM}.log';
-
-            my $logdir = $Foswiki::cfg{Log}{Dir};
-            Foswiki::Configure::Load::expandValue($logdir);
-
-            foreach my $file ( keys %FileRange ) {
-                my ( $min_level, $max_level ) =
-                  split( /:/, $FileRange{$file} );
-                print STDERR
-                  "File::Rolling: Adding $file as $min_level-$max_level\n"
-                  if TRACE;
-                $logd->{dispatch}->add(
-                    Log::Dispatch::File::Rolling->new(
-                        name      => 'rolling-' . $file,
-                        min_level => $min_level,
-                        max_level => $max_level,
-                        filename  => "$logdir/$file$pattern",
-                        mode      => '>>',
-                        binmode   => ":encoding(utf-8)",
-                        newline   => 1,
-                        callbacks => sub {
-                            return $this->flattenLog(@_);
-                        }
-                    )
-                );
-            }
-        }
+        return;
     }
 
-    return $this;
-}
-
-=begin TML
-
----++ ObjectMethod DESTROY()
-
-Break circular references.
-
-=cut
-
-sub DESTROY {
-    my $this = shift;
-
-    undef $this->{fileMap};
-    undef $this->{logd};
-}
-
-=begin TML
-
----++ ObjectMethod flattenLog()
-
-Provides a default layout if configure neglected to include one for the File logger,
-and then call the Foswiki::Logger::LogDispatch::flattenLog() utility routine.
-
-=cut
-
-sub flattenLog {
-    my $this  = shift;
-    my $level = '';
-
-# Benchmark shows it's 30% faster to scan the parameter array rather than convert it to a hash
-    for ( my $e = 0 ; $e < scalar @_ ; $e += 2 ) {
-        if ( $_[$e] eq 'level' ) {
-            $level = $_[ $e + 1 ];
-            last;
-        }
+    eval 'use Log::Dispatch::File::Rolling';
+    if ($@) {
+        print STDERR
+          "ERROR: Log::Dispatch::File::Rolling missing - DISABLED\n$@";
+        $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Enabled} = 0;
+        return;
     }
 
-    my $logLayout_ref =
-      ( defined $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{$level} )
-      ? $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{$level}
-      : $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Layout}{DEFAULT};
+    my $pattern = $Foswiki::cfg{Log}{LogDispatch}{FileRolling}{Pattern}
+      || '-%d{yyyy-MM}.log';
 
-    push @_, _Layout_ref => $logLayout_ref;
-
-    $this->{logd}->flattenLog(@_);
+    foreach my $file ( keys %fileLevels ) {
+        my ( $min_level, $max_level ) =
+          split( /:/, $fileLevels{$file} );
+        print STDERR "File::Rolling: Adding $file as $min_level-$max_level\n"
+          if TRACE;
+        $this->{logd}->{dispatch}->add(
+            Log::Dispatch::File::Rolling->new(
+                name      => 'rolling-' . $file,
+                min_level => $min_level,
+                max_level => $max_level,
+                filename  => $this->logDir . "/$file$pattern",
+                mode      => '>>',
+                binmode   => ":encoding(utf-8)",
+                newline   => 1,
+                callbacks => sub {
+                    return $this->flattenLog(@_);
+                }
+            )
+        );
+    }
 }
 
 =begin TML
@@ -193,12 +106,11 @@ Determine the file needed to provide the requested event level, and return an it
 
 =cut
 
-sub eachEventSince() {
+sub eachEventSince {
     my ( $this, $time, $level, $lock ) = @_;
 
     my @logs;
-    my $log =
-      Foswiki::Logger::LogDispatch::FileUtil::getLogForLevel( $this, $level );
+    my $log = $this->getLogForLevel($level);
 
     my $prefix;
     my $pattern;
@@ -299,48 +211,6 @@ sub eachEventSince() {
 
 }
 
-# Get the name of the log for a given reporting level
-sub getLogForLevel {
-    my $logger = shift;
-    my $level  = shift;
-    my $file;
-
-    my %level2num = (
-        debug     => 0,
-        info      => 1,
-        notice    => 2,
-        warning   => 3,
-        error     => 4,
-        critical  => 5,
-        alert     => 6,
-        emergency => 7,
-    );
-    foreach my $testfile ( keys %{ $logger->{fileMap} } ) {
-        my ( $min_level, $max_level ) =
-          split( /:/, $logger->{fileMap}->{$testfile} );
-        print STDERR " $testfile splits to min $min_level max $max_level\n"
-          if TRACE;
-        if (   $level2num{$min_level} <= $level2num{$level}
-            && $level2num{$max_level} >= $level2num{$level} )
-        {
-            $file = $testfile;
-            last;
-        }
-    }
-
-    print STDERR "Decoded level $level to file $file\n" if TRACE;
-
-    ASSERT( defined $file && $file ) if DEBUG;
-    my $log = $Foswiki::cfg{Log}{Dir} . '/' . $file . '.log';
-
-    # SMELL: Expand should not be needed, except if bin/configure tries
-    # to log to locations relative to $Foswiki::cfg{WorkingDir}, DataDir, etc.
-    # Windows seemed to be the most difficult to fix - this was the only thing
-    # that I could find that worked all the time.
-    Foswiki::Configure::Load::expandValue($log);
-    return $log;
-}
-
 sub _format {
     my $formatted = shift;
     my $time      = shift;
@@ -356,7 +226,10 @@ Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
 Author: SvenDowideit, GeorgeClark
 
-Copyright (C) 2012 SvenDowideit@fosiki.com,  Foswiki Contributors.
+Copyright (C) 2012 SvenDowideit@fosiki.com
+
+Copyright (C) 2012-2018  Foswiki Contributors.
+
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 
