@@ -124,7 +124,9 @@ In order to generate logs fully compatible with the old loggers, the following a
         };
 </verbatim>
 
----+++ =LogDispatch::File= simple file logging
+---+++ =LogDispatch::File= - simple file logging
+
+<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::File </div>
 
 When enabled, the default configuration:
    * debug messages (Level 0) are writen to =debug.log=
@@ -156,7 +158,7 @@ $Foswiki::cfg{Log}{LogDispatch}{File}{FileLevels} = {
     };
 </verbatim>
 
----+++ =LogDispatch::FileRotate= 
+---+++ =LogDispatch::FileRotate= - simple rotating files
 
 <div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::FileRotate </div>
 
@@ -178,12 +180,14 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{FileLevels} = {
     };
 </verbatim>
 
----+++ Screen (STDERR) logger
+---+++ =Log::Dispatch::Screen= - log to STDERR
+
+<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::Syslog </div>
 
 This method directs messages to the STDERR output.  STDERR is normally recorded in the Apache error log. When enabled, the default configuration sends  error, critical, emergency and alert messages to STDERR.
 There are two configuration options, specifying the lowest and highest log level to be sent to STDERR.
 
----+++ Syslog logger
+---+++ =Log::Dispatch::Syslog= - system logging
 
 <div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::Syslog </div>
 
