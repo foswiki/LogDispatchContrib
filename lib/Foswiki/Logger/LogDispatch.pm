@@ -326,21 +326,21 @@ sub eachEventSince {
     my $cfgHandlers = $Foswiki::cfg{Log}{LogDispatch}{EventIterator}{$level}
       || 'FileRotate,File';
 
-    my @eventHandlers = split( ',', $cfgHandlers );
+    my @eventHandlers = split( /\s*,\s*/, $cfgHandlers );
     my $handler;
-    my $eventHandler;
+    my $logMethod;
 
     foreach (@eventHandlers) {
-        if ( $Foswiki::cfg{Log}{LogDispatch}{$_}{Enabled} ) {
-            $handler      = $this->{methods}->{$_};
-            $eventHandler = $_;
+        $logMethod = $_;
+        if ( $Foswiki::cfg{Log}{LogDispatch}{$logMethod}{Enabled} ) {
+            $handler = $this->{methods}->{$logMethod};
             last;
         }
     }
 
     unless ( $handler && $handler->can('eachEventSince') ) {
         Foswiki::Func::writeWarning( "eachEventSince not supported for"
-              . ( $eventHandler || "unknown" )
+              . ( $logMethod || "unknown" )
               . "." );
         require Foswiki::ListIterator;
         return new Foswiki::ListIterator( [] );

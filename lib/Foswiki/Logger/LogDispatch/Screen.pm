@@ -4,7 +4,6 @@ package Foswiki::Logger::LogDispatch::Screen;
 use strict;
 use warnings;
 
-use Log::Dispatch                      ();
 use Foswiki::Logger::LogDispatch::Base ();
 
 our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;

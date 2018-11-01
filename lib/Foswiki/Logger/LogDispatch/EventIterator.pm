@@ -3,25 +3,29 @@ package Foswiki::Logger::LogDispatch::EventIterator;
 
 use strict;
 use warnings;
-use Assert;
-use Fcntl qw(:flock);
-use Foswiki::Time qw(-nofoswiki);
 
-# Private subclass of LineIterator that splits events into fields
-require Foswiki::LineIterator;
-@Foswiki::Logger::LogDispatch::EventIterator::ISA = ('Foswiki::LineIterator');
+use Assert;
+use Foswiki::Time qw(-nofoswiki);
+use Foswiki::LineIterator ();
+
+our @ISA = qw/Foswiki::LineIterator/;
 
 sub new {
     my ( $class, $fh, $threshold, $level ) = @_;
+
     my $this = $class->SUPER::new($fh);
+
     $this->{_threshold} = $threshold;
     $this->{_level}     = $level;
+
     return $this;
 }
 
 sub hasNext {
     my $this = shift;
+
     return 1 if defined $this->{_nextEvent};
+
     while ( $this->SUPER::hasNext() ) {
         my $ln = $this->SUPER::next();
         $ln =~ s/&#255;&#10;/\n/g;    # Reverse newline encoding
@@ -47,11 +51,13 @@ sub hasNext {
             }
         }
     }
+
     return 0;
 }
 
 sub next {
     my $this = shift;
+
     my ( $fhash, $data ) = $this->parseRecord();
 
     #use Data::Dumper;

@@ -4,10 +4,15 @@ package Foswiki::Logger::LogDispatch::FileRotate;
 use strict;
 use warnings;
 
-use Foswiki::Logger::LogDispatch::Base ();
-our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
-
 use constant TRACE => 0;
+
+use Fcntl qw(:flock);
+use Foswiki::ListIterator                       ();
+use Foswiki::AggregateIterator                  ();
+use Foswiki::Logger::LogDispatch::EventIterator ();
+use Foswiki::Logger::LogDispatch::Base          ();
+
+our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
 our %RECURRENCE = (
     "yearly"  => "yyyy",
@@ -50,7 +55,8 @@ sub init {
 
     my $pattern = $RECURRENCE{$rec} || 'yyyy-MM';
 
-    my $maxFiles = $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{MaxFiles} || 12;
+    $this->{maxFiles} =
+      $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{MaxFiles} || 12;
 
     foreach my $file ( keys %fileLevels ) {
         my ( $min_level, $max_level ) =
@@ -66,7 +72,7 @@ sub init {
                 max_level   => $max_level,
                 filename    => $this->logDir . "/$file.log",
                 DatePattern => $pattern,
-                max         => $maxFiles,
+                max         => $this->{maxFiles},
                 mode        => '>>',
                 binmode     => ":encoding(utf-8)",
                 newline     => 1,
@@ -76,6 +82,61 @@ sub init {
             )
         );
     }
+}
+
+=begin TML
+
+---++ ObjectMethod eachEventSince()
+
+Determine the file needed to provide the requested event level, and return an iterator for the file.
+
+=cut
+
+sub eachEventSince {
+    my ( $this, $time, $level, $lock ) = @_;
+
+    my @logs;
+    my $basename = $this->getLogForLevel($level);
+    my $logIt;
+
+    my $idx = $this->{maxFiles} - 1;
+    while ( $idx >= 0 ) {
+        my $logFile = $basename;
+        $logFile .= ".$idx" if $idx;
+        push @logs, $logFile if -r $logFile;
+        $idx--;
+    }
+
+    my @iterators;
+
+    foreach my $logFile (@logs) {
+        my $fh;
+        if ( open( $fh, '<:encoding(utf-8)', $logFile ) ) {
+
+            my $logIt =
+              new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time,
+                $level );
+
+            push @iterators, $logIt;
+
+            if ($lock) {
+                $logIt->{logLocked} =
+                  eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
+            }
+
+            push @{ $this->{handles} }, $fh;      # to be closed later
+        }
+        else {
+
+            # Would be nice to report this, but it's chicken and egg and
+            # besides, empty logfiles can happen.
+            print STDERR "Failed to open $logFile: $!" if (TRACE);
+        }
+    }
+
+    return new Foswiki::ListIterator( \@iterators ) if scalar(@iterators) == 0;
+    return $iterators[0] if scalar(@iterators) == 1;
+    return new Foswiki::AggregateIterator( \@iterators );
 }
 
 1;

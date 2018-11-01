@@ -7,11 +7,9 @@ use warnings;
 use constant TRACE => 0;
 
 use Fcntl qw(:flock);
-use Log::Dispatch              ();
-use Foswiki::AggregateIterator ();
-use Foswiki::ListIterator      ();
-
-use Foswiki::Logger::LogDispatch::Base ();
+use Foswiki::ListIterator                       ();
+use Foswiki::Logger::LogDispatch::EventIterator ();
+use Foswiki::Logger::LogDispatch::Base          ();
 
 our @ISA = qw/Foswiki::Logger::LogDispatch::Base/;
 
@@ -101,36 +99,34 @@ sub eachEventSince {
     my ( $this, $time, $level, $lock ) = @_;
 
     my @logs;
-    my $log = $this->getLogForLevel($level);
-    my @iterators;
+    my $logFile = $this->getLogForLevel($level);
+    my $logIt;
 
-    unless ( -r $log ) {
-        require Foswiki::ListIterator;
+    unless ( -r $logFile ) {
         return new Foswiki::ListIterator( [] );
     }
 
     my $fh;
-    if ( open( $fh, '<:encoding(utf-8)', $log ) ) {
-        my $logIt =
-          new Foswiki::Logger::LogDispatch::File::EventIterator( $fh, $time,
-            $level );
-        push( @iterators, $logIt );
+    if ( open( $fh, '<:encoding(utf-8)', $logFile ) ) {
+        $logIt =
+          new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time, $level );
+
         if ($lock) {
             $logIt->{logLocked} =
               eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
         }
+
+        push @{ $this->{handles} }, $fh;      # to be closed later
     }
     else {
 
         # Would be nice to report this, but it's chicken and egg and
         # besides, empty logfiles can happen.
-        print STDERR "Failed to open $log: $!" if (TRACE);
+        print STDERR "Failed to open $logFile: $!" if TRACE;
+        return new Foswiki::ListIterator( [] );
     }
 
-    return new Foswiki::ListIterator( \@iterators ) if scalar(@iterators) == 0;
-    return $iterators[0] if scalar(@iterators) == 1;
-    return new Foswiki::AggregateIterator( \@iterators );
-
+    return $logIt;
 }
 
 1;

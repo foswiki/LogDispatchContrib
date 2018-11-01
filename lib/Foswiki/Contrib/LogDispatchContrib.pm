@@ -15,8 +15,8 @@ package Foswiki::Contrib::LogDispatchContrib;
 use strict;
 use warnings;
 
-our $VERSION = '1.01';
-our $RELEASE = '15 Oct 2012';
+our $VERSION = '2.00';
+our $RELEASE = '01 Nov 2018';
 
 our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
 
@@ -25,9 +25,9 @@ our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Author: SvenDowideit, GeorgeClark
+Author: SvenDowideit, GeorgeClark, MichaelDaum
 
-Copyright (C) 2008-2012 Foswiki Contributors. Foswiki Contributors
+Copyright (C) 2008-2018 Foswiki Contributors. Foswiki Contributors
 are listed in the AUTHORS file in the root of this distribution.
 NOTE: Please extend that file, not this notice.
 

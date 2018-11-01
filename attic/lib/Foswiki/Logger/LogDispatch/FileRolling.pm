@@ -189,7 +189,7 @@ sub eachEventSince {
         my $fh;
         if ( open( $fh, '<:encoding(utf-8)', $logfile ) ) {
             my $logIt =
-              new Foswiki::Logger::LogDispatch::FileRolling::EventIterator( $fh,
+              new Foswiki::Logger::LogDispatch::EventIterator( $fh,
                 $time, $level );
             push( @iterators, $logIt );
             if ($lock) {

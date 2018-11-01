@@ -8,9 +8,6 @@ use constant TRACE => 0;
 
 use Assert;
 use Fcntl qw(:flock);
-use Foswiki::Logger::LogDispatch::EventIterator ();
-
-our @ISA = qw/Foswiki::Logger::LogDispatch::EventIterator/;
 
 =begin TML
 
@@ -73,9 +70,12 @@ Break circular references.
 sub DESTROY {
     my $this = shift;
 
-    flock( $this->{handle}, LOCK_UN ) if defined $this->{logLocked};
-    close( delete $this->{handle} ) if defined $this->{handle};
+    foreach my $handle ( @{ $this->{handles} } ) {
+        flock( $handle, LOCK_UN ) if defined $this->{logLocked};
+    }
 
+    undef $this->{handles};
+    undef $this->{logLocked};
     undef $this->{fileLevels};
     undef $this->{logd};
     undef $this->{logDir};
@@ -89,9 +89,9 @@ Determine the file needed to provide the requested event level, and return an it
 
 =cut
 
-sub eachEventSince {
-    die "not implemented";
-}
+#sub eachEventSince {
+#    die "not implemented";
+#}
 
 =begin TML
 
