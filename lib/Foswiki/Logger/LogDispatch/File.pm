@@ -6,7 +6,6 @@ use warnings;
 
 use constant TRACE => 0;
 
-use Fcntl qw(:flock);
 use Foswiki::ListIterator                       ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
 use Foswiki::Logger::LogDispatch::Base          ();
@@ -98,35 +97,13 @@ Determine the file needed to provide the requested event level, and return an it
 sub eachEventSince {
     my ( $this, $time, $level, $lock ) = @_;
 
-    my @logs;
+    my $eventIter =
+      Foswiki::Logger::LogDispatch::EventIterator->new( $time, $level, $lock );
+
     my $logFile = $this->getLogForLevel($level);
-    my $logIt;
+    $eventIter->addLogFile($logFile);
 
-    unless ( -r $logFile ) {
-        return new Foswiki::ListIterator( [] );
-    }
-
-    my $fh;
-    if ( open( $fh, '<:encoding(utf-8)', $logFile ) ) {
-        $logIt =
-          new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time, $level );
-
-        if ($lock) {
-            $logIt->{logLocked} =
-              eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
-        }
-
-        push @{ $this->{handles} }, $fh;      # to be closed later
-    }
-    else {
-
-        # Would be nice to report this, but it's chicken and egg and
-        # besides, empty logfiles can happen.
-        print STDERR "Failed to open $logFile: $!" if TRACE;
-        return new Foswiki::ListIterator( [] );
-    }
-
-    return $logIt;
+    return $eventIter;
 }
 
 1;

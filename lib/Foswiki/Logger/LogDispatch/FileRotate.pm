@@ -6,9 +6,6 @@ use warnings;
 
 use constant TRACE => 0;
 
-use Fcntl qw(:flock);
-use Foswiki::ListIterator                       ();
-use Foswiki::AggregateIterator                  ();
 use Foswiki::Logger::LogDispatch::EventIterator ();
 use Foswiki::Logger::LogDispatch::Base          ();
 
@@ -95,48 +92,20 @@ Determine the file needed to provide the requested event level, and return an it
 sub eachEventSince {
     my ( $this, $time, $level, $lock ) = @_;
 
-    my @logs;
-    my $basename = $this->getLogForLevel($level);
-    my $logIt;
+    my $eventIter =
+      Foswiki::Logger::LogDispatch::EventIterator->new( $time, $level, $lock );
 
-    my $idx = $this->{maxFiles} - 1;
+    my $basename = $this->getLogForLevel($level);
+    my $idx      = $this->{maxFiles} - 1;
+
     while ( $idx >= 0 ) {
         my $logFile = $basename;
         $logFile .= ".$idx" if $idx;
-        push @logs, $logFile if -r $logFile;
+        $eventIter->addLogFile($logFile);
         $idx--;
     }
 
-    my @iterators;
-
-    foreach my $logFile (@logs) {
-        my $fh;
-        if ( open( $fh, '<:encoding(utf-8)', $logFile ) ) {
-
-            my $logIt =
-              new Foswiki::Logger::LogDispatch::EventIterator( $fh, $time,
-                $level );
-
-            push @iterators, $logIt;
-
-            if ($lock) {
-                $logIt->{logLocked} =
-                  eval { flock( $fh, LOCK_SH ) }; # No error in case on non-flockable FS; eval in case flock not supported.
-            }
-
-            push @{ $this->{handles} }, $fh;      # to be closed later
-        }
-        else {
-
-            # Would be nice to report this, but it's chicken and egg and
-            # besides, empty logfiles can happen.
-            print STDERR "Failed to open $logFile: $!" if (TRACE);
-        }
-    }
-
-    return new Foswiki::ListIterator( \@iterators ) if scalar(@iterators) == 0;
-    return $iterators[0] if scalar(@iterators) == 1;
-    return new Foswiki::AggregateIterator( \@iterators );
+    return $eventIter;
 }
 
 1;

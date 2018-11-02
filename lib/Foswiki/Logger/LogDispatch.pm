@@ -68,6 +68,7 @@ sub init {
         # These are not logging methods
         next if $type eq 'MaskIP';
         next if $type eq 'EventIterator';
+        next if $type eq 'Base';
         next unless $Foswiki::cfg{Log}{LogDispatch}{$type}{Enabled};
 
         my $logMethod = 'Foswiki::Logger::LogDispatch::' . $type;

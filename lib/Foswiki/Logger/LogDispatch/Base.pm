@@ -7,7 +7,6 @@ use warnings;
 use constant TRACE => 0;
 
 use Assert;
-use Fcntl qw(:flock);
 
 =begin TML
 
@@ -70,12 +69,6 @@ Break circular references.
 sub DESTROY {
     my $this = shift;
 
-    foreach my $handle ( @{ $this->{handles} } ) {
-        flock( $handle, LOCK_UN ) if defined $this->{logLocked};
-    }
-
-    undef $this->{handles};
-    undef $this->{logLocked};
     undef $this->{fileLevels};
     undef $this->{logd};
     undef $this->{logDir};
