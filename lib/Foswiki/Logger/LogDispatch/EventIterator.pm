@@ -8,7 +8,7 @@ use constant TRACE => 0;
 
 use Assert;
 use Fcntl qw(:flock);
-use Foswiki::Time qw(-nofoswiki);
+use Time::ParseDate       ();
 use Foswiki::LineIterator ();
 use Foswiki::Iterator     ();
 our @ISA = ('Foswiki::Iterator');
@@ -78,21 +78,27 @@ sub _openNextFile {
     }
 
     # peek first and last event
-    my $lastLine;
     my $firstLine;
+    my $lastLine;
+    my $firstEvent;
+    my $lastEvent;
     while ( my $line = <$fh> ) {
         next if $line =~ /^\s*$/;
         next unless $line =~ /\b$this->{_level}\b/;    # test the level
-        $firstLine = $line unless defined $firstLine;
+        unless ( defined $firstLine ) {
+            $firstLine  = $line;
+            $firstEvent = $this->_extractEvent($firstLine);
+            last if $firstEvent;    # yes, we need to process this logfile
+        }
         $lastLine = $line;
     }
-    seek( $fh, 0, 0 );                                 #rewind
 
-    my $firstEvent = $this->_extractEvent($firstLine);
-    my $lastEvent  = $this->_extractEvent($lastLine);
+    unless ($firstEvent) {          # maybe a later event up to the last one
+        my $lastEvent = $this->_extractEvent($lastLine);
+        return $this->_openNextFile unless $lastEvent;
+    }
 
-    return $this->_openNextFile unless $firstEvent || $lastEvent;
-
+    seek( $fh, 0, 0 );              #rewind
     $this->{_lineIter} = new Foswiki::LineIterator($fh);
 
     if ( $this->{_doLock} ) {
@@ -175,7 +181,7 @@ sub _extractEvent {
         'info' # accept a plain 'old' format date with no level only if reading info (statistics)
       )
     {
-        $event[0] = Foswiki::Time::parseTime( $event[0] );
+        $event[0] = Time::ParseDate::parsedate( $event[0] );
         return unless defined $event[0];    # Skip event if time doesn't decode.
         return if $event[0] < $this->{_time};    # test the time
     }

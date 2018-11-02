@@ -1,3 +1,4 @@
+Time::ParseDate,>=2015,cpan,Required
 Log::Dispatch,>=0,cpan,Required
 Log::Dispatch::File,>=0,cpan,Optional
 Log::Dispatch::FileRotate,>=0,cpan,Optional
