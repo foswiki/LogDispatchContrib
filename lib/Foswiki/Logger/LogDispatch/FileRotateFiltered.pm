@@ -1,11 +1,11 @@
 # See bottom of file for license and copyright information
-package Foswiki::Logger::LogDispatch::FileFiltered;
+package Foswiki::Logger::LogDispatch::FileRotateFiltered;
 
 use strict;
 use warnings;
 
-use Log::Dispatch::File ();
-our @ISA = ('Log::Dispatch::File');
+use Log::Dispatch::FileRotate ();
+our @ISA = ('Log::Dispatch::FileRotate');
 
 sub new {
     my $proto = shift;
@@ -51,4 +51,5 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 As per the GPL, removal of this notice is prohibited.
+
 

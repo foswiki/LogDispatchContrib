@@ -37,50 +37,31 @@ sub init {
 
     $this->{fileLevels} = \%fileLevels;
 
+    require Foswiki::Logger::LogDispatch::FileFiltered;
+
     foreach my $file ( keys %fileLevels ) {
         my ( $min_level, $max_level, $filter ) =
           split( /:/, $fileLevels{$file}, 3 );
 
-        if ($filter) {
-            require Foswiki::Logger::LogDispatch::FileFiltered;
-            print STDERR
-              "File: Adding Filtered $file as $min_level-$max_level, $filter\n"
-              if TRACE;
-            $this->{logd}->{dispatch}->add(
-                Foswiki::Logger::LogDispatch::FileFiltered->new(
-                    name      => 'file-' . $file,
-                    min_level => $min_level,
-                    max_level => $max_level,
-                    filename  => $this->logDir . "$file.log",
-                    mode      => '>>',
-                    binmode   => ":encoding(utf-8)",
-                    newline   => 1,
-                    filter    => $filter,
-                    callbacks => sub {
-                        return $this->flattenLog(@_);
-                    }
-                )
-            );
-        }
-        else {
-            require Log::Dispatch::File;
-            print STDERR "File: Adding $file as $min_level-$max_level\n"
-              if TRACE;
-            $this->{logd}->{dispatch}->add(
-                Log::Dispatch::File->new(
-                    name      => 'file-' . $file,
-                    min_level => $min_level,
-                    max_level => $max_level,
-                    filename  => $this->logDir . "/$file.log",
-                    mode      => '>>',
-                    binmode   => ":encoding(utf-8)",
-                    newline   => 1,
-                    callbacks => sub {
-                        return $this->flattenLog(@_);
-                    }
-                )
-            );
-        }
+        print STDERR "File: Adding $file as $min_level-$max_level, filter="
+          . ( $filter // 'undef' ) . "\n"
+          if TRACE;
+
+        $this->{logd}->{dispatch}->add(
+            Foswiki::Logger::LogDispatch::FileFiltered->new(
+                name      => 'file-' . $file,
+                min_level => $min_level,
+                max_level => $max_level,
+                filename  => $this->logDir . "$file.log",
+                mode      => '>>',
+                binmode   => ":encoding(utf-8)",
+                newline   => 1,
+                filter    => $filter,
+                callbacks => sub {
+                    return $this->flattenLog(@_);
+                }
+            )
+        );
     }
 
     return $this;

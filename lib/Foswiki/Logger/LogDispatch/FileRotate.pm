@@ -45,7 +45,7 @@ sub init {
 
     $this->{fileLevels} = \%fileLevels;
 
-    require Log::Dispatch::FileRotate;
+    require Foswiki::Logger::LogDispatch::FileRotateFiltered;
 
     my $rec =
       $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{Recurrence} || 'monthly';
@@ -56,14 +56,16 @@ sub init {
       $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{MaxFiles} || 12;
 
     foreach my $file ( keys %fileLevels ) {
-        my ( $min_level, $max_level ) =
-          split( /:/, $fileLevels{$file} );
+        my ( $min_level, $max_level, $filter ) =
+          split( /:/, $fileLevels{$file}, 3 );
 
-        print STDERR "FileRotate: Adding $file as $min_level-$max_level\n"
+        print STDERR
+          "FileRotate: Adding $file as $min_level-$max_level, filter="
+          . ( $filter // 'undef' ) . "\n"
           if TRACE;
 
         $this->{logd}->{dispatch}->add(
-            Log::Dispatch::FileRotate->new(
+            Foswiki::Logger::LogDispatch::FileRotateFiltered->new(
                 name        => 'rotate-' . $file,
                 min_level   => $min_level,
                 max_level   => $max_level,
@@ -73,6 +75,7 @@ sub init {
                 mode        => '>>',
                 binmode     => ":encoding(utf-8)",
                 newline     => 1,
+                filter      => $filter,
                 callbacks   => sub {
                     return $this->flattenLog(@_);
                 }

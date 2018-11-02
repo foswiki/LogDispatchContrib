@@ -1,4 +1,4 @@
-%META:TOPICINFO{author="ProjectContributor" comment="" date="1541101108" format="1.1" version="1"}%
+%META:TOPICINFO{author="ProjectContributor" comment="" date="1541178873" format="1.1" version="1"}%
 ---+!! LogDispatchContrib
 
 %FORMFIELD{"Description"}%
@@ -126,8 +126,6 @@ In order to generate logs fully compatible with the old loggers, the following a
 
 ---+++ =LogDispatch::File= - simple file logging
 
-<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::File </div>
-
 When enabled, the default configuration:
    * debug messages (Level 0) are writen to =debug.log=
    * info messages (Level 1) are written to =events.log=
@@ -180,16 +178,15 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{FileLevels} = {
     };
 </verbatim>
 
----+++ =Log::Dispatch::Screen= - log to STDERR
+Like for =LogDispatch::File= messages may be filtered using a third parameter in the ={FileLevels}= configuration. 
+See above for an example.
 
-<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::Syslog </div>
+---+++ =Log::Dispatch::Screen= - log to STDERR
 
 This method directs messages to the STDERR output.  STDERR is normally recorded in the Apache error log. When enabled, the default configuration sends  error, critical, emergency and alert messages to STDERR.
 There are two configuration options, specifying the lowest and highest log level to be sent to STDERR.
 
 ---+++ =Log::Dispatch::Syslog= - system logging
-
-<div class="foswikiHelp">%X% This logger depends on CPAN:Log::Dispatch::Syslog </div>
 
 The Syslog logger uses the system Syslog facility to send messages to the
 system log. It is disabled by default.  It has 5 configuration options:

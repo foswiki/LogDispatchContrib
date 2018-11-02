@@ -12,6 +12,7 @@ lib/Foswiki/Logger/LogDispatch/Base.pm 0644
 lib/Foswiki/Logger/LogDispatch/EventIterator.pm 0644
 lib/Foswiki/Logger/LogDispatch/FileFiltered.pm 0644
 lib/Foswiki/Logger/LogDispatch/File.pm 0644
+lib/Foswiki/Logger/LogDispatch/FileRotateFiltered.pm 0644
 lib/Foswiki/Logger/LogDispatch/FileRotate.pm 0644
 lib/Foswiki/Logger/LogDispatch.pm 0644
 lib/Foswiki/Logger/LogDispatch/Screen.pm 0644
