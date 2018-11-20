@@ -56,7 +56,7 @@ $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{FileLevels} = {
 
 # **SELECT yearly,monthly,weekly,daily,hourly DISPLAY_IF="{Log}{LogDispatch}{FileRotate}{Enabled}"**
 # Recurrence of files being rotated.  
-$Foswiki::cfg{Log}{LogDispatch}{File}{Pattern} = 'monthly';
+$Foswiki::cfg{Log}{LogDispatch}{FileRotate}{Recurrence} = 'monthly';
 
 # **NUMBER 10 DISPLAY_IF="{Log}{LogDispatch}{FileRotate}{Enabled}"** 
 # Number of files to keep. Note that based on the recurrence you've chosen you might change this to a different value. 
