@@ -205,7 +205,7 @@ sub logDir {
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2012-2018 Foswiki Contributors,  Foswiki Contributors.
+Copyright (C) 2012-2019 Foswiki Contributors,  Foswiki Contributors.
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 
