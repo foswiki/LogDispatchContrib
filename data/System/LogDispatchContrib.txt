@@ -213,6 +213,7 @@ system log. It is disabled by default.  It has 5 configuration options:
 ---++ Change History
 
 %TABLE{columnwidths="7em" tablewidth="100%"}%
+|  27 Oct 2020: | 2.10 - fixed !FileRotate based loggers |
 |  01 Nov 2018: | 2.00 - rewrite and code reorg; replaced !FileRolling with !FileRotate |
 |  15 Oct 2012: | 1.01 - improved filter implementation,  improved file layout implementaiton |
 
@@ -222,7 +223,7 @@ system log. It is disabled by default.  It has 5 configuration options:
 %META:FIELD{name="Release" title="Release" value="%25$RELEASE%25"}%
 %META:FIELD{name="Description" title="Description" value="%25$SHORTDESCRIPTION%25"}%
 %META:FIELD{name="Repository" title="Repository" value="https://github.com/foswiki/%25TOPIC%25"}%
-%META:FIELD{name="Copyright" title="Copyright" value="2012-2019, Foswiki Contributors"}%
+%META:FIELD{name="Copyright" title="Copyright" value="2012-2020, Foswiki Contributors"}%
 %META:FIELD{name="License" title="License" value="GPL ([[http://www.gnu.org/copyleft/gpl.html][GNU General Public License 3]])"}%
 %META:FIELD{name="Home" title="Home" value="http://foswiki.org/Extensions/%25TOPIC%25"}%
 %META:FIELD{name="Support" title="Support" value="http://foswiki.org/Support/%25TOPIC%25"}%

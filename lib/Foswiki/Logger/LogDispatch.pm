@@ -72,7 +72,9 @@ sub init {
         next unless $Foswiki::cfg{Log}{LogDispatch}{$type}{Enabled};
 
         my $logMethod = 'Foswiki::Logger::LogDispatch::' . $type;
-        eval "require $logMethod";
+        my $path      = $logMethod . '.pm';
+        $path =~ s/::/\//g;
+        eval { require $path };
 
         if ($@) {
             print STDERR
@@ -272,11 +274,14 @@ sub flattenLog {
     $ldelim =~ s/^\s+//g;
     $tdelim =~ s/\s+$//g;
 
-    my $message = $ldelim
-      . join(
+    my $message = $ldelim . join(
         @$logLayout_ref[0],
-        map { s/([$delim\n])/'&#255;&#'.ord($1).';'/gex; $_ } @line
-      ) . $tdelim;
+        map {
+            my $tmp = $_;
+            $tmp =~ s/([$delim\n])/'&#255;&#'.ord($1).';'/gex;
+            $tmp
+        } @line
+    ) . $tdelim;
 
     my $extra = '';
     foreach ( sort @fields ) {
@@ -354,7 +359,7 @@ sub eachEventSince {
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2012-2019 SvenDowideit@fosiki.com,  Foswiki Contributors.
+Copyright (C) 2012-2020 SvenDowideit@fosiki.com,  Foswiki Contributors.
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 

@@ -8,14 +8,10 @@ use Log::Dispatch::FileRotate ();
 our @ISA = ('Log::Dispatch::FileRotate');
 
 sub new {
-    my $proto = shift;
-    my $class = ref $proto || $proto;
+    my $class = shift;
+    my %p     = @_;
 
-    my %p = @_;
-
-    my $self = bless {}, $class;
-
-    $self->_basic_init(%p);
+    my $self = $class->SUPER::new(@_);
     $self->{filter} = $p{filter};
 
     return $self;
@@ -26,7 +22,8 @@ sub log_message {
     my %p    = @_;
 
     return
-      unless ( defined $self->{filter} && $p{message} =~ qr/$self->{filter}/ );
+      if ( defined $self->{filter} && $p{message} !~ qr/$self->{filter}/ );
+
     $self->SUPER::log_message(@_);
 }
 
@@ -34,7 +31,7 @@ sub log_message {
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2012-2019 Foswiki Contributors.
+Copyright (C) 2012-2020 Foswiki Contributors.
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
 

@@ -51,6 +51,7 @@ sub init {
       $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{Recurrence} || 'monthly';
 
     my $pattern = $RECURRENCE{$rec} || 'yyyy-MM';
+    print STDERR "pattern=$pattern\n" if TRACE;
 
     $this->{maxFiles} =
       $Foswiki::cfg{Log}{LogDispatch}{FileRotate}{MaxFiles} || 12;
@@ -59,8 +60,10 @@ sub init {
         my ( $min_level, $max_level, $filter ) =
           split( /:/, $fileLevels{$file}, 3 );
 
+        my $path = $this->logDir . "/$file.log";
+
         print STDERR
-          "FileRotate: Adding $file as $min_level-$max_level, filter="
+          "FileRotate: Adding $path as $min_level-$max_level, filter="
           . ( $filter // 'undef' ) . "\n"
           if TRACE;
 
@@ -69,7 +72,7 @@ sub init {
                 name        => 'rotate-' . $file,
                 min_level   => $min_level,
                 max_level   => $max_level,
-                filename    => $this->logDir . "/$file.log",
+                filename    => $path,
                 DatePattern => $pattern,
                 max         => $this->{maxFiles},
                 mode        => '>>',
@@ -116,7 +119,7 @@ sub eachEventSince {
 __END__
 Module of Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2012-2019  Foswiki Contributors
+Copyright (C) 2012-2020  Foswiki Contributors
 
 Foswiki Contributors are listed in the AUTHORS file in the root of
 this distribution.  NOTE: Please extend that file, not this notice.
