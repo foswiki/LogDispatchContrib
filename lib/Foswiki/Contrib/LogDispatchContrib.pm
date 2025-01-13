@@ -15,9 +15,8 @@ package Foswiki::Contrib::LogDispatchContrib;
 use strict;
 use warnings;
 
-our $VERSION = '2.10';
-our $RELEASE = '20 Aug 2020';
-
+our $VERSION          = '2.20';
+our $RELEASE          = '%$RELEASE%';
 our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
 
 1;
@@ -25,7 +24,7 @@ our $SHORTDESCRIPTION = 'Advanced logging using Log::Dispatch';
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2008-2020 Foswiki Contributors. Foswiki Contributors
+Copyright (C) 2008-2025 Foswiki Contributors. Foswiki Contributors
 are listed in the AUTHORS file in the root of this distribution.
 NOTE: Please extend that file, not this notice.
 

@@ -7,6 +7,7 @@ lib/Foswiki/Configure/Checkers/Log/LogDispatch/Syslog/Enabled.pm 0644
 lib/Foswiki/Configure/Checkers/Log/LogDispatch/Syslog/MaxLevel.pm 0644
 lib/Foswiki/Contrib/LogDispatchContrib/Config.spec 0644
 lib/Foswiki/Contrib/LogDispatchContrib/DEPENDENCIES 0644
+lib/Foswiki/Contrib/LogDispatchContrib/MANIFEST 0644
 lib/Foswiki/Contrib/LogDispatchContrib.pm 0644
 lib/Foswiki/Logger/LogDispatch/Base.pm 0644
 lib/Foswiki/Logger/LogDispatch/EventIterator.pm 0644
